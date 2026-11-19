@@ -6,9 +6,11 @@
 #include "Abilities/GameplayAbility.h"
 #include "AssassinGameplayAbilities.generated.h"
 
+class UAnimMontage;
 /**
  * 
  */
+
 UCLASS()
 class ASSASSINGAS_API UAssassinAttackAbility : public UGameplayAbility
 {
@@ -84,6 +86,6 @@ protected:
 	void OnDodgeMontageCancelled();
 
 private:
-	UPROPERTY(EditAnywhere, Category = "Animation")
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage> DodgeMontage;
 };

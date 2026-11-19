@@ -20,30 +20,6 @@
 #include "AbilitySystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-void AAssassinGASCharacter::PossessedBy(AController* NewController)
-{
-	Super::PossessedBy(NewController);
-	
-	if (!HasAuthority() || bAbilitiesGranted)
-	{
-		return;
-	}
-	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
-	
-	if (!ASC)
-	{
-		return;
-	}
-	
-	ASC->GiveAbility(FGameplayAbilitySpec(UAssassinAttackAbility::StaticClass(), 1));
-	ASC->GiveAbility(FGameplayAbilitySpec(UAssassinHealAbility::StaticClass(), 1));
-	ASC->GiveAbility(FGameplayAbilitySpec(UAssassinSprintAbility::StaticClass(), 1));
-	ASC->GiveAbility(FGameplayAbilitySpec(UAssassinJumpAbility::StaticClass(), 1));
-	ASC->GiveAbility(FGameplayAbilitySpec(UAssassinDodgeAbility::StaticClass(), 1));
-	
-	bAbilitiesGranted = true;
-}
-
 AAssassinGASCharacter::AAssassinGASCharacter()
 {
 	// Set size for collision capsule
@@ -288,11 +264,14 @@ void AAssassinGASCharacter::InputDodge()
 		return;
 	}
 	
-	const bool bActivated = ASC->TryActivateAbilityByClass(UAssassinDodgeAbility::StaticClass(), true);
+	FGameplayTagContainer DodgeAbilityTags;
+	DodgeAbilityTags.AddTag(AssassinGameplayTags::Ability_Dodge);
+	const bool bActivationAttempted = ASC->TryActivateAbilitiesByTag(DodgeAbilityTags, true);
+	
 	const UAssassinAttributeSet* Attributes = ASC->GetSet<UAssassinAttributeSet>();
 	
-	UE_LOG(LogTemp, Display, TEXT("[Input][Dodge] Activated=%d | Stamina=%.1f | Dodging=%d | Jumping=%d | Dead=%d"),
-		bActivated,
+	UE_LOG(LogTemp, Display, TEXT("[Input][Dodge] ActivationAttempted=%d | Stamina=%.1f | Dodging=%d | Jumping=%d | Dead=%d"),
+		bActivationAttempted,
 		Attributes ? Attributes->GetStamina() : 0.0f,
 		ASC->GetGameplayTagCount(AssassinGameplayTags::State_Dodging),
 		ASC->GetGameplayTagCount(AssassinGameplayTags::State_Jumping),

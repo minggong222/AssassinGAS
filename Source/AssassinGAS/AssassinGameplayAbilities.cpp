@@ -13,7 +13,6 @@
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
-#include "UObject/ConstructorHelpers.h"
 
 UAssassinAttackAbility::UAssassinAttackAbility()
 {

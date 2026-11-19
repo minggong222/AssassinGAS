@@ -8,6 +8,8 @@
 #include "AssassinGameplayEffects.h"
 #include "GameplayEffect.h"
 #include "AssassinGameplayTags.h"
+#include "Abilities/GameplayAbility.h"
+#include "GameplayAbilitySpec.h"
 
 // Sets default values
 AAssassinCharacterBase::AAssassinCharacterBase()
@@ -56,6 +58,7 @@ void AAssassinCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 	InitializeAbilityActorInfo();
+	GrantDefaultAbilities();
 }
 
 void AAssassinCharacterBase::OnRep_Controller()
@@ -104,6 +107,44 @@ void AAssassinCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerIn
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+}
+
+void AAssassinCharacterBase::GrantDefaultAbilities()
+{
+	if (!HasAuthority() || !AbilitySystemComponent || bDefaultAbilitiesGranted)
+	{
+		return;
+	}
+	
+	int32 GrantedCount = 0;
+	
+	for (const TSubclassOf<UGameplayAbility> AbilityClass : DefaultAbilities)
+	{
+		if (!AbilityClass)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[GAS][GrantAbility] Invalid Ability Class | Character=%s"), *GetName());
+			continue;
+		}
+		
+		const FGameplayAbilitySpecHandle AbilityHandle = AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(AbilityClass, 1));
+		
+		if (AbilityHandle.IsValid())
+		{
+			++GrantedCount;
+		}
+		
+		UE_LOG(LogTemp, Display, TEXT("[GAS][GrantAbility] Character=%s | Ability=%s | Granted=%d"),
+		   *GetName(),
+		   *GetNameSafe(AbilityClass.Get()),
+		   AbilityHandle.IsValid());
+	}
+	
+	bDefaultAbilitiesGranted = true;
+	
+	UE_LOG(LogTemp, Display, TEXT("[GAS][GrantDefaultAbilities] Character=%s | Configured=%d | Granted=%d"),
+	   *GetName(),
+	   DefaultAbilities.Num(),
+	   GrantedCount);
 }
 
 void AAssassinCharacterBase::InitializeAbilityActorInfo()

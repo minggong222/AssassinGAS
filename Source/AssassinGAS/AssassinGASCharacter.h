@@ -49,8 +49,6 @@ protected:
 	/** Mouse Look Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseLookAction;
-
-	virtual void PossessedBy(AController* NewController) override;
 public:
 
 	/** Constructor */
@@ -103,7 +101,5 @@ private:
 	void InputJumpStarted();
 	void InputJumpEnded();
 	void InputDodge();
-	
-	bool bAbilitiesGranted = false;
 };
 

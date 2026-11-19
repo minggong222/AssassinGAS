@@ -11,6 +11,7 @@
 class UAbilitySystemComponent;
 class UAssassinAttributeSet;
 class UGameplayEffect;
+class UGameplayAbility;
 class AController;
 
 UCLASS()
@@ -31,6 +32,9 @@ protected:
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_Controller() override;
 	virtual void Landed(const FHitResult& Hit) override;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Abilities")
+	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -45,5 +49,8 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "GAS")
 	TObjectPtr<UAssassinAttributeSet> AttributeSet;
 	
+	bool bDefaultAbilitiesGranted = false;
+
+	void GrantDefaultAbilities();
 	void InitializeAbilityActorInfo();
 };
