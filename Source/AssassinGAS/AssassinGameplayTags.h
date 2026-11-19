@@ -1,0 +1,24 @@
+#pragma once
+
+#include "NativeGameplayTags.h"
+
+namespace AssassinGameplayTags
+{
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Dead);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Stunned);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Attacking);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Sprinting);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Hidden);
+
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Heal);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Sprint);
+	
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Jumping);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Jump);
+	
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Dodging);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Dodge);
+	
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_Hit);
+}

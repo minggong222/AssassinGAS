@@ -1,0 +1,87 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "AssassinAttributeSet.h"
+#include "GameplayEffectExtension.h"
+#include "AssassinGameplayTags.h"
+#include "AbilitySystemComponent.h"
+
+UAssassinAttributeSet::UAssassinAttributeSet()
+	: Health(100.0f),
+	  MaxHealth(100.0f),
+	  Stamina(100.0f),
+	  MaxStamina(100.0f),
+	  AttackPower(10.0f)
+{
+}
+
+void UAssassinAttributeSet::ClampAttributeValue(const FGameplayAttribute& Attribute, float& NewValue) const
+{
+	if (Attribute == GetHealthAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxHealth());
+	}
+	else if (Attribute == GetMaxHealthAttribute())
+	{
+		NewValue = FMath::Max(NewValue, 1.0f);
+	}
+	else if (Attribute == GetStaminaAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxStamina());
+	}
+	else if (Attribute == GetMaxStaminaAttribute())
+	{
+		NewValue = FMath::Max(NewValue, 0.0f);
+	}
+	else if (Attribute == GetAttackPowerAttribute())
+	{
+		NewValue = FMath::Max(NewValue, 0.0f);
+	}
+}
+
+void UAssassinAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
+{
+	Super::PreAttributeChange(Attribute, NewValue);
+	ClampAttributeValue(Attribute, NewValue);
+}
+
+void UAssassinAttributeSet::PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const
+{
+	Super::PreAttributeBaseChange(Attribute, NewValue);
+	ClampAttributeValue(Attribute, NewValue);
+}
+
+
+void UAssassinAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
+{
+	Super::PostGameplayEffectExecute(Data);
+
+	const FGameplayAttribute& Attribute = Data.EvaluatedData.Attribute;
+
+	if (Attribute == GetHealthAttribute() || Attribute == GetMaxHealthAttribute())
+	{
+		SetHealth(FMath::Clamp(GetHealth(), 0.0f, GetMaxHealth()));
+	}
+	else if (Attribute == GetStaminaAttribute() || Attribute == GetMaxStaminaAttribute())
+	{
+		SetStamina(FMath::Clamp(GetStamina(), 0.0f, GetMaxStamina()));
+	}
+
+	UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+
+	if (GetHealth() <= 0.0f && ASC && !ASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Dead))
+	{
+		ASC->AddLooseGameplayTag(AssassinGameplayTags::State_Dead, 1, EGameplayTagReplicationState::None);
+		ASC->CancelAllAbilities(nullptr);
+
+		UE_LOG(LogTemp, Warning, TEXT("[GAS][Death] State.Dead applied. Health=%.1f"), GetHealth());
+	}
+
+	UE_LOG(LogTemp, Display, TEXT("[GAS][Attribute] Health=%.1f/%.1f | Stamina=%.1f/%.1f | AttackPower=%.1f | Dead=%d"),
+		GetHealth(),
+		GetMaxHealth(),
+		GetStamina(),
+		GetMaxStamina(),
+		GetAttackPower(),
+		ASC ? ASC->GetGameplayTagCount(AssassinGameplayTags::State_Dead) : 0);
+}
