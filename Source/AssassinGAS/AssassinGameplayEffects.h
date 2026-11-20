@@ -4,11 +4,30 @@
 
 #include "CoreMinimal.h"
 #include "GameplayEffect.h"
+#include "GameplayEffectExecutionCalculation.h"
 #include "AssassinGameplayEffects.generated.h"
 
 /**
  * 
  */
+
+UCLASS()
+class ASSASSINGAS_API UAssassinDamageExecution : public UGameplayEffectExecutionCalculation
+{
+	GENERATED_BODY()
+
+public:
+	UAssassinDamageExecution();
+
+	virtual void Execute_Implementation(const FGameplayEffectCustomExecutionParameters& ExecutionParams, FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const override;
+
+private:
+	FGameplayEffectAttributeCaptureDefinition AttackPowerCaptureDefinition;
+	FGameplayEffectAttributeCaptureDefinition DefenseCaptureDefinition;
+	FGameplayEffectAttributeCaptureDefinition CriticalChanceCaptureDefinition;
+	FGameplayEffectAttributeCaptureDefinition CriticalDamageMultiplierCaptureDefinition;
+};
+
 UCLASS()
 class ASSASSINGAS_API UAssassinDamageEffect : public UGameplayEffect
 {

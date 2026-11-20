@@ -4,12 +4,12 @@
 #include "AssassinCharacterBase.h"
 #include "AssassinAttributeSet.h"
 #include "AbilitySystemComponent.h"
-#include "AssassinGameplayAbilities.h"
 #include "AssassinGameplayEffects.h"
 #include "GameplayEffect.h"
 #include "AssassinGameplayTags.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameplayAbilitySpec.h"
+#include "GameplayTagContainer.h"
 
 // Sets default values
 AAssassinCharacterBase::AAssassinCharacterBase()
@@ -77,14 +77,15 @@ void AAssassinCharacterBase::Landed(const FHitResult& Hit)
 		return;
 	}
 
-	FGameplayAbilitySpec* JumpSpec = AbilitySystemComponent->FindAbilitySpecFromClass(UAssassinJumpAbility::StaticClass());
-
-	const bool bJumpAbilityActive = JumpSpec && JumpSpec->IsActive();
+	FGameplayTagContainer JumpAbilityTags;
+	JumpAbilityTags.AddTag(AssassinGameplayTags::Ability_Jump);
+	
 	const int32 JumpingTagBefore = AbilitySystemComponent->GetGameplayTagCount(AssassinGameplayTags::State_Jumping);
-
+	const bool bJumpAbilityActive = JumpingTagBefore > 0;
+	
 	if (bJumpAbilityActive)
 	{
-		AbilitySystemComponent->CancelAbilityHandle(JumpSpec->Handle);
+		AbilitySystemComponent->CancelAbilities(&JumpAbilityTags, nullptr, nullptr);
 	}
 
 	UE_LOG(LogTemp, Display, TEXT("[Character][Landed] JumpActive=%d | JumpingTag=%d -> %d | CanJump=%d"),

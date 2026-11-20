@@ -18,7 +18,9 @@ UAssassinAttackAbility::UAssassinAttackAbility()
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 
-    AbilityTags.AddTag(AssassinGameplayTags::Ability_Attack);
+    FGameplayTagContainer AssetTags;
+    AssetTags.AddTag(AssassinGameplayTags::Ability_Attack);
+    SetAssetTags(AssetTags);
     ActivationOwnedTags.AddTag(AssassinGameplayTags::State_Attacking);
 
     ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Dead);
@@ -39,13 +41,14 @@ void UAssassinAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
 
     AActor* AvatarActor = ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr;
     UAbilitySystemComponent* SourceASC = GetAbilitySystemComponentFromActorInfo();
-
+    
     if (!AvatarActor || !SourceASC)
     {
+        UE_LOG(LogTemp, Error, TEXT("[GA_Attack] Invalid Reference | Avatar=%d ASC=%d"), AvatarActor != nullptr, SourceASC != nullptr);
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
-
+    
     const FVector TraceStart = AvatarActor->GetActorLocation() + FVector(0.0f, 0.0f, 45.0f);
     const FVector TraceEnd = TraceStart + AvatarActor->GetActorForwardVector() * 180.0f;
     const FCollisionShape AttackShape = FCollisionShape::MakeSphere(65.0f);
@@ -94,6 +97,10 @@ void UAssassinAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
                     UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Target=%s Health=%.1f/%.1f Dead=%d"), *TargetActor->GetName(), TargetAttributes->GetHealth(), TargetAttributes->GetMaxHealth(), TargetASC->GetGameplayTagCount(AssassinGameplayTags::State_Dead));
                 }
             }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("[GA_Attack] Failed to create DamageEffect Spec"));
+            }
 
             break;
         }
@@ -105,9 +112,10 @@ void UAssassinAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
 UAssassinHealAbility::UAssassinHealAbility()
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-
-    AbilityTags.AddTag(AssassinGameplayTags::Ability_Heal);
-
+    
+    FGameplayTagContainer AssetTags;
+    AssetTags.AddTag(AssassinGameplayTags::Ability_Heal);
+    SetAssetTags(AssetTags);
     ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Dead);
     ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Stunned);
     ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Dodging);
@@ -145,7 +153,9 @@ UAssassinSprintAbility::UAssassinSprintAbility()
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 
-    AbilityTags.AddTag(AssassinGameplayTags::Ability_Sprint);
+    FGameplayTagContainer AssetTags;
+    AssetTags.AddTag(AssassinGameplayTags::Ability_Sprint);
+    SetAssetTags(AssetTags);
     ActivationOwnedTags.AddTag(AssassinGameplayTags::State_Sprinting);
 
     ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Dead);
@@ -212,7 +222,9 @@ UAssassinJumpAbility::UAssassinJumpAbility()
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 
-    AbilityTags.AddTag(AssassinGameplayTags::Ability_Jump);
+    FGameplayTagContainer AssetTags;
+    AssetTags.AddTag(AssassinGameplayTags::Ability_Jump);
+    SetAssetTags(AssetTags);
     ActivationOwnedTags.AddTag(AssassinGameplayTags::State_Jumping);
 
     ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Dead);
@@ -262,7 +274,9 @@ UAssassinDodgeAbility::UAssassinDodgeAbility()
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
     
-    AbilityTags.AddTag(AssassinGameplayTags::Ability_Dodge);
+    FGameplayTagContainer AssetTags;
+    AssetTags.AddTag(AssassinGameplayTags::Ability_Dodge);
+    SetAssetTags(AssetTags);
     ActivationOwnedTags.AddTag(AssassinGameplayTags::State_Dodging);
     
     ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Dead);

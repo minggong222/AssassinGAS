@@ -11,7 +11,10 @@ UAssassinAttributeSet::UAssassinAttributeSet()
 	  MaxHealth(100.0f),
 	  Stamina(100.0f),
 	  MaxStamina(100.0f),
-	  AttackPower(10.0f)
+	  AttackPower(10.0f),
+	  Defense(5.0f),
+	  CriticalChance(0.0f),
+	  CriticalDamageMultiplier(2.0f)
 {
 }
 
@@ -33,9 +36,16 @@ void UAssassinAttributeSet::ClampAttributeValue(const FGameplayAttribute& Attrib
 	{
 		NewValue = FMath::Max(NewValue, 0.0f);
 	}
-	else if (Attribute == GetAttackPowerAttribute())
+	else if (Attribute == GetAttackPowerAttribute() || Attribute == GetDefenseAttribute())
 	{
 		NewValue = FMath::Max(NewValue, 0.0f);
+	}else if (Attribute == GetCriticalChanceAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.0f, 100.0f);
+	}
+	else if (Attribute == GetCriticalDamageMultiplierAttribute())
+	{
+		NewValue = FMath::Max(NewValue, 1.0f);
 	}
 }
 
@@ -76,12 +86,5 @@ void UAssassinAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCa
 
 		UE_LOG(LogTemp, Warning, TEXT("[GAS][Death] State.Dead applied. Health=%.1f"), GetHealth());
 	}
-
-	UE_LOG(LogTemp, Display, TEXT("[GAS][Attribute] Health=%.1f/%.1f | Stamina=%.1f/%.1f | AttackPower=%.1f | Dead=%d"),
-		GetHealth(),
-		GetMaxHealth(),
-		GetStamina(),
-		GetMaxStamina(),
-		GetAttackPower(),
-		ASC ? ASC->GetGameplayTagCount(AssassinGameplayTags::State_Dead) : 0);
+	UE_LOG(LogTemp, Display, TEXT("[GAS][Attribute] Health=%.1f/%.1f | Stamina=%.1f/%.1f | AttackPower=%.1f | Defense=%.1f | CritChance=%.1f | CritMultiplier=%.2f | Dead=%d"), GetHealth(), GetMaxHealth(), GetStamina(), GetMaxStamina(), GetAttackPower(), GetDefense(), GetCriticalChance(), GetCriticalDamageMultiplier(), ASC ? ASC->GetGameplayTagCount(AssassinGameplayTags::State_Dead) : 0);
 }

@@ -43,6 +43,18 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attributes")
 	FGameplayAttributeData AttackPower;
 	ASSASSIN_ATTRIBUTE_ACCESSORS(UAssassinAttributeSet, AttackPower)
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attributes")
+	FGameplayAttributeData Defense;
+	ASSASSIN_ATTRIBUTE_ACCESSORS(UAssassinAttributeSet, Defense)
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attributes")
+	FGameplayAttributeData CriticalChance;
+	ASSASSIN_ATTRIBUTE_ACCESSORS(UAssassinAttributeSet, CriticalChance)
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attributes")
+	FGameplayAttributeData CriticalDamageMultiplier;
+	ASSASSIN_ATTRIBUTE_ACCESSORS(UAssassinAttributeSet, CriticalDamageMultiplier)
 protected:
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 	virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const override;

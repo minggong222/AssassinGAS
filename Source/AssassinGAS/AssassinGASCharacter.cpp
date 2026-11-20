@@ -11,12 +11,11 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "AssassinGAS.h"
-#include "AssassinGameplayAbilities.h"
 #include "AbilitySystemComponent.h"
-#include "GameplayAbilitySpec.h"
 #include "InputCoreTypes.h"
 #include "AssassinGameplayTags.h"
 #include "AssassinAttributeSet.h"
+#include "GameplayTagContainer.h"
 #include "AbilitySystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -155,7 +154,9 @@ void AAssassinGASCharacter::InputAttack()
 		return;
 	}
 
-	const bool bActivated = ASC->TryActivateAbilityByClass(UAssassinAttackAbility::StaticClass(), true);
+	FGameplayTagContainer AbilityTags;
+	AbilityTags.AddTag(AssassinGameplayTags::Ability_Attack);
+	const bool bActivated = ASC->TryActivateAbilitiesByTag(AbilityTags, true);
 
 	UE_LOG(LogTemp, Display, TEXT("[Input][Attack] Activated=%d | Dead=%d | Stunned=%d | Sprinting=%d"),
 		bActivated,
@@ -173,7 +174,9 @@ void AAssassinGASCharacter::InputHeal()
 		return;
 	}
 
-	const bool bActivated = ASC->TryActivateAbilityByClass(UAssassinHealAbility::StaticClass(), true);
+	FGameplayTagContainer AbilityTags;
+	AbilityTags.AddTag(AssassinGameplayTags::Ability_Heal);
+	const bool bActivated = ASC->TryActivateAbilitiesByTag(AbilityTags, true);
 	const UAssassinAttributeSet* Attributes = ASC->GetSet<UAssassinAttributeSet>();
 
 	if (Attributes)
@@ -195,7 +198,9 @@ void AAssassinGASCharacter::InputSprintStarted()
 		return;
 	}
 
-	const bool bActivated = ASC->TryActivateAbilityByClass(UAssassinSprintAbility::StaticClass(), true);
+	FGameplayTagContainer AbilityTags;
+	AbilityTags.AddTag(AssassinGameplayTags::Ability_Sprint);
+	const bool bActivated = ASC->TryActivateAbilitiesByTag(AbilityTags, true);
 	const UAssassinAttributeSet* Attributes = ASC->GetSet<UAssassinAttributeSet>();
 
 	UE_LOG(LogTemp, Display, TEXT("[Input][Sprint] Activated=%d | Stamina=%.1f | Dead=%d | Attacking=%d | Sprinting=%d"),
@@ -215,12 +220,9 @@ void AAssassinGASCharacter::InputSprintEnded()
 		return;
 	}
 
-	FGameplayAbilitySpec* SprintSpec = ASC->FindAbilitySpecFromClass(UAssassinSprintAbility::StaticClass());
-
-	if (SprintSpec)
-	{
-		ASC->CancelAbilityHandle(SprintSpec->Handle);
-	}
+	FGameplayTagContainer SprintAbilityTags;
+	SprintAbilityTags.AddTag(AssassinGameplayTags::Ability_Sprint);
+	ASC->CancelAbilities(&SprintAbilityTags, nullptr, nullptr);
 
 	UE_LOG(LogTemp, Display, TEXT("[Input][Sprint] Released | Sprinting=%d | MaxWalkSpeed=%.1f"),
 		ASC->GetGameplayTagCount(AssassinGameplayTags::State_Sprinting),
@@ -237,7 +239,9 @@ void AAssassinGASCharacter::InputJumpStarted()
 		return;
 	}
 
-	const bool bActivated = ASC->TryActivateAbilityByClass(UAssassinJumpAbility::StaticClass(), true);
+	FGameplayTagContainer AbilityTags;
+	AbilityTags.AddTag(AssassinGameplayTags::Ability_Jump);
+	const bool bActivated = ASC->TryActivateAbilitiesByTag(AbilityTags, true);
 
 	UE_LOG(LogTemp, Display, TEXT("[Input][Jump] Activated=%d | Jumping=%d | CanJump=%d"),
 		bActivated,
