@@ -14,6 +14,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "CoreGlobals.h"
 
 UAssassinAttackAbility::UAssassinAttackAbility()
 {
@@ -50,7 +51,11 @@ void UAssassinAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
-    
+
+    HitActors.Reset();
+    LastAttackTraceFrame = 0;
+    bHasAttackTraceFrame = false;
+
     UAbilityTask_WaitGameplayEvent* EventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, AssassinGameplayTags::Event_Attack_Hit, nullptr, false, true);
     UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, AttackMontage, 1.0f);
     
@@ -82,7 +87,16 @@ void UAssassinAttackAbility::OnAttackTraceEvent(FGameplayEventData Payload)
         UE_LOG(LogTemp, Error, TEXT("[GA_Attack] Attack Trace Invalid Reference"));
         return;
     }
-    
+
+    if (bHasAttackTraceFrame && LastAttackTraceFrame == GFrameCounter)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[GA_Attack] Duplicate Trace Skipped | Frame=%llu"), GFrameCounter);
+        return;
+    }
+
+    LastAttackTraceFrame = GFrameCounter;
+    bHasAttackTraceFrame = true;
+
     const FVector TraceStart = AvatarActor->GetActorLocation() + FVector(0.0f,0.0f,45.0f);
     const FVector TraceEnd = TraceStart + AvatarActor->GetActorForwardVector() * 180.0f;
     const FCollisionShape AttackShape = FCollisionShape::MakeSphere(65.0f);
@@ -91,7 +105,7 @@ void UAssassinAttackAbility::OnAttackTraceEvent(FGameplayEventData Payload)
     TArray<FHitResult> HitResults;
     const bool bHit = AvatarActor->GetWorld()->SweepMultiByChannel(HitResults, TraceStart, TraceEnd, FQuat::Identity, ECC_Pawn, AttackShape, QueryParams);
     
-    UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Trace Executed | Hit=%d | HitCount=%d | Start=%s | End=%s"), bHit, HitResults.Num(), *TraceStart.ToString(), *TraceEnd.ToString());
+    UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Trace Executed | Frame=%llu | Hit=%d | HitCount=%d | Start=%s | End=%s"), GFrameCounter, bHit, HitResults.Num(), *TraceStart.ToString(), *TraceEnd.ToString());
     
     if (!bHit)
     {

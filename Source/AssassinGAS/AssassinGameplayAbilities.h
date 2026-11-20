@@ -40,6 +40,8 @@ private:
 	TObjectPtr<UAnimMontage> AttackMontage;
 
 	TSet<TWeakObjectPtr<AActor>> HitActors;
+	uint64 LastAttackTraceFrame = 0;
+	bool bHasAttackTraceFrame = false;
 };
 
 UCLASS()

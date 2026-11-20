@@ -42,7 +42,7 @@ void UAnimNotifyState_GASAttackTrace::NotifyTick(USkeletalMeshComponent* MeshCom
 	FGameplayEventData Payload;
 	Payload.EventTag = AssassinGameplayTags::Event_Attack_Hit;
 	Payload.Instigator = Owner;
-
+	UE_LOG(LogTemp, Warning, TEXT("[AttackTrace] NotifyTick | Frame=%llu | Mesh=%s"), GFrameCounter, *GetNameSafe(MeshComp));
 	ASC->HandleGameplayEvent(AssassinGameplayTags::Event_Attack_Hit, &Payload);
 }
 
