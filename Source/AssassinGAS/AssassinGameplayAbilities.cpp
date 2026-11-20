@@ -51,7 +51,7 @@ void UAssassinAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
         return;
     }
     
-    UAbilityTask_WaitGameplayEvent* EventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, AssassinGameplayTags::Event_Attack_Hit, nullptr, true, true);
+    UAbilityTask_WaitGameplayEvent* EventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, AssassinGameplayTags::Event_Attack_Hit, nullptr, false, true);
     UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, AttackMontage, 1.0f);
     
     if (!EventTask || !MontageTask)
@@ -114,7 +114,14 @@ void UAssassinAttackAbility::OnAttackTraceEvent(FGameplayEventData Payload)
         {
             continue;
         }
+        
+        const TWeakObjectPtr<AActor> TargetReference(TargetActor);
 
+        if (HitActors.Contains(TargetReference))
+        {
+            continue;
+        }
+        
         if (TargetASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Dead))
         {
             UE_LOG(LogTemp, Warning, TEXT("[GA_Attack] Target is already dead: %s"), *TargetActor->GetName());
@@ -129,6 +136,7 @@ void UAssassinAttackAbility::OnAttackTraceEvent(FGameplayEventData Payload)
         if (DamageSpec.IsValid())
         {
             SourceASC->ApplyGameplayEffectSpecToTarget(*DamageSpec.Data.Get(), TargetASC);
+            HitActors.Add(TargetReference);
 
             const UAssassinAttributeSet* TargetAttributes = TargetASC->GetSet<UAssassinAttributeSet>();
 

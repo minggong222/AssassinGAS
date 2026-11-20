@@ -7,6 +7,7 @@
 #include "AssassinGameplayAbilities.generated.h"
 
 class UAnimMontage;
+class AActor;
 /**
  * 
  */
@@ -37,6 +38,8 @@ protected:
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage> AttackMontage;
+
+	TSet<TWeakObjectPtr<AActor>> HitActors;
 };
 
 UCLASS()
