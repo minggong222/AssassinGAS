@@ -20,6 +20,23 @@ public:
 	UAssassinAttackAbility();
 
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
+	
+protected:
+	UFUNCTION()
+	void OnAttackMontageCompleted();
+
+	UFUNCTION()
+	void OnAttackMontageInterrupted();
+
+	UFUNCTION()
+	void OnAttackMontageCancelled();
+
+	UFUNCTION()
+	void OnAttackTraceEvent(FGameplayEventData Payload);
+
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage> AttackMontage;
 };
 
 UCLASS()

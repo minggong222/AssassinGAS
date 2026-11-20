@@ -11,6 +11,7 @@
 #include "CollisionQueryParams.h"
 #include "CollisionShape.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 
@@ -42,72 +43,140 @@ void UAssassinAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
     AActor* AvatarActor = ActorInfo ? ActorInfo->AvatarActor.Get() : nullptr;
     UAbilitySystemComponent* SourceASC = GetAbilitySystemComponentFromActorInfo();
     
-    if (!AvatarActor || !SourceASC)
+    if (!AvatarActor || !SourceASC || !AttackMontage)
     {
-        UE_LOG(LogTemp, Error, TEXT("[GA_Attack] Invalid Reference | Avatar=%d ASC=%d"), AvatarActor != nullptr, SourceASC != nullptr);
+        const UAssassinAttackAbility* DefaultAbility = GetClass()->GetDefaultObject<UAssassinAttackAbility>();
+        UE_LOG(LogTemp, Error, TEXT("[GA_Attack] Invalid Reference | Class=%s RuntimeMontage=%s DefaultMontage=%s"), *GetClass()->GetPathName(), *GetNameSafe(AttackMontage), *GetNameSafe(DefaultAbility->AttackMontage));
         EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
         return;
     }
     
-    const FVector TraceStart = AvatarActor->GetActorLocation() + FVector(0.0f, 0.0f, 45.0f);
+    UAbilityTask_WaitGameplayEvent* EventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, AssassinGameplayTags::Event_Attack_Hit, nullptr, true, true);
+    UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, AttackMontage, 1.0f);
+    
+    if (!EventTask || !MontageTask)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[GA_Attack] Failed to create AbilityTask | EventTask=%d MontageTask=%d"), EventTask != nullptr, MontageTask != nullptr);
+        EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+        return;
+    }
+    
+    EventTask->EventReceived.AddDynamic(this, &UAssassinAttackAbility::OnAttackTraceEvent);
+    MontageTask->OnCompleted.AddDynamic(this, &UAssassinAttackAbility::OnAttackMontageCompleted);
+    MontageTask->OnInterrupted.AddDynamic(this, &UAssassinAttackAbility::OnAttackMontageInterrupted);
+    MontageTask->OnCancelled.AddDynamic(this, &UAssassinAttackAbility::OnAttackMontageCancelled);
+    
+    EventTask->ReadyForActivation();
+    MontageTask->ReadyForActivation();
+    
+    UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Montage Started | Montage=%s | Attacking=%d"), *AttackMontage->GetName(), SourceASC->GetGameplayTagCount(AssassinGameplayTags::State_Attacking));
+}
+
+void UAssassinAttackAbility::OnAttackTraceEvent(FGameplayEventData Payload)
+{
+    AActor* AvatarActor = GetAvatarActorFromActorInfo();
+    UAbilitySystemComponent* SourceASC = GetAbilitySystemComponentFromActorInfo();
+    
+    if (!IsActive() || !AvatarActor || !SourceASC || !AvatarActor->GetWorld())
+    {
+        UE_LOG(LogTemp, Error, TEXT("[GA_Attack] Attack Trace Invalid Reference"));
+        return;
+    }
+    
+    const FVector TraceStart = AvatarActor->GetActorLocation() + FVector(0.0f,0.0f,45.0f);
     const FVector TraceEnd = TraceStart + AvatarActor->GetActorForwardVector() * 180.0f;
     const FCollisionShape AttackShape = FCollisionShape::MakeSphere(65.0f);
     FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(AssassinAttack), false, AvatarActor);
-
+    
     TArray<FHitResult> HitResults;
-
-    if (AvatarActor->GetWorld()->SweepMultiByChannel(HitResults, TraceStart, TraceEnd, FQuat::Identity, ECC_Pawn, AttackShape, QueryParams))
+    const bool bHit = AvatarActor->GetWorld()->SweepMultiByChannel(HitResults, TraceStart, TraceEnd, FQuat::Identity, ECC_Pawn, AttackShape, QueryParams);
+    
+    UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Trace Executed | Hit=%d | HitCount=%d | Start=%s | End=%s"), bHit, HitResults.Num(), *TraceStart.ToString(), *TraceEnd.ToString());
+    
+    if (!bHit)
     {
-        for (const FHitResult& Hit : HitResults)
-        {
-            AActor* TargetActor = Hit.GetActor();
-
-            if (!TargetActor || TargetActor == AvatarActor)
-            {
-                continue;
-            }
-
-            const IAbilitySystemInterface* TargetInterface = Cast<IAbilitySystemInterface>(TargetActor);
-            UAbilitySystemComponent* TargetASC = TargetInterface ? TargetInterface->GetAbilitySystemComponent() : nullptr;
-
-            if (!TargetASC)
-            {
-                continue;
-            }
-            
-            if (TargetASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Dead))
-            {
-                UE_LOG(LogTemp, Warning, TEXT("[GA_Attack] Target is already dead: %s"), *TargetActor->GetName());
-                continue;
-            }
-
-            FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
-            EffectContext.AddSourceObject(AvatarActor);
-
-            FGameplayEffectSpecHandle DamageSpec = SourceASC->MakeOutgoingSpec(UAssassinDamageEffect::StaticClass(), 1.0f, EffectContext);
-
-            if (DamageSpec.IsValid())
-            {
-                SourceASC->ApplyGameplayEffectSpecToTarget(*DamageSpec.Data.Get(), TargetASC);
-
-                const UAssassinAttributeSet* TargetAttributes = TargetASC->GetSet<UAssassinAttributeSet>();
-
-                if (TargetAttributes)
-                {
-                    UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Target=%s Health=%.1f/%.1f Dead=%d"), *TargetActor->GetName(), TargetAttributes->GetHealth(), TargetAttributes->GetMaxHealth(), TargetASC->GetGameplayTagCount(AssassinGameplayTags::State_Dead));
-                }
-            }
-            else
-            {
-                UE_LOG(LogTemp, Error, TEXT("[GA_Attack] Failed to create DamageEffect Spec"));
-            }
-
-            break;
-        }
+        return;
     }
 
-    EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+    for (const FHitResult& Hit : HitResults)
+    {
+        AActor* TargetActor = Hit.GetActor();
+
+        if (!TargetActor || TargetActor == AvatarActor)
+        {
+            continue;
+        }
+
+        const IAbilitySystemInterface* TargetInterface = Cast<IAbilitySystemInterface>(TargetActor);
+        UAbilitySystemComponent* TargetASC = TargetInterface ? TargetInterface->GetAbilitySystemComponent() : nullptr;
+
+        if (!TargetASC)
+        {
+            continue;
+        }
+
+        if (TargetASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Dead))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("[GA_Attack] Target is already dead: %s"), *TargetActor->GetName());
+            continue;
+        }
+
+        FGameplayEffectContextHandle EffectContext = SourceASC->MakeEffectContext();
+        EffectContext.AddSourceObject(AvatarActor);
+
+        FGameplayEffectSpecHandle DamageSpec = SourceASC->MakeOutgoingSpec(UAssassinDamageEffect::StaticClass(), 1.0f, EffectContext);
+
+        if (DamageSpec.IsValid())
+        {
+            SourceASC->ApplyGameplayEffectSpecToTarget(*DamageSpec.Data.Get(), TargetASC);
+
+            const UAssassinAttributeSet* TargetAttributes = TargetASC->GetSet<UAssassinAttributeSet>();
+
+            if (TargetAttributes)
+            {
+                UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Target=%s Health=%.1f/%.1f Dead=%d"), *TargetActor->GetName(), TargetAttributes->GetHealth(), TargetAttributes->GetMaxHealth(), TargetASC->GetGameplayTagCount(AssassinGameplayTags::State_Dead));
+            }
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("[GA_Attack] Failed to create DamageEffect Spec"));
+        }
+
+        break;
+    }
 }
+
+
+void UAssassinAttackAbility::OnAttackMontageCompleted()
+{
+    UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Montage Completed"));
+
+    if (IsActive())
+    {
+        EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
+    }
+}
+
+void UAssassinAttackAbility::OnAttackMontageInterrupted()
+{
+    UE_LOG(LogTemp, Warning, TEXT("[GA_Attack] Montage Interrupted"));
+
+    if (IsActive())
+    {
+        EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, true);
+    }
+}
+
+void UAssassinAttackAbility::OnAttackMontageCancelled()
+{
+    UE_LOG(LogTemp, Warning, TEXT("[GA_Attack] Montage Cancelled"));
+
+    if (IsActive())
+    {
+        EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, true);
+    }
+}
+
 
 UAssassinHealAbility::UAssassinHealAbility()
 {
