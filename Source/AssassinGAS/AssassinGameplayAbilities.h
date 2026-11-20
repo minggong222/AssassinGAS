@@ -8,6 +8,7 @@
 
 class UAnimMontage;
 class AActor;
+class UAnimNotifyState_GASAttackTrace;
 /**
  * 
  */
@@ -33,6 +34,9 @@ protected:
 	void OnAttackMontageCancelled();
 
 	UFUNCTION()
+	void OnAttackTraceBegin(FGameplayEventData Payload);
+
+	UFUNCTION()
 	void OnAttackTraceEvent(FGameplayEventData Payload);
 
 private:
@@ -40,8 +44,8 @@ private:
 	TObjectPtr<UAnimMontage> AttackMontage;
 
 	TSet<TWeakObjectPtr<AActor>> HitActors;
-	uint64 LastAttackTraceFrame = 0;
-	bool bHasAttackTraceFrame = false;
+	TMap<FName, FVector> PreviousAttackTraceLocations;
+	TMap<FName, uint64> LastAttackTraceFrames;
 };
 
 UCLASS()

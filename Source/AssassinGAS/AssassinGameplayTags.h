@@ -21,4 +21,5 @@ namespace AssassinGameplayTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Dodge);
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_Hit);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_Trace_Begin);
 }

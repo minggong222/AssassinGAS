@@ -9,10 +9,26 @@ void UAnimNotifyState_GASAttackTrace::NotifyBegin(USkeletalMeshComponent* MeshCo
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 
-	if (MeshComp && MeshComp->GetOwner())
+	if (!MeshComp)
 	{
-		UE_LOG(LogTemp, Display, TEXT("[AttackTrace] Window Begin | Owner=%s | Duration=%.3f"), *MeshComp->GetOwner()->GetName(), TotalDuration);
+		return;
 	}
+	
+	AActor* Owner = MeshComp->GetOwner();
+	const IAbilitySystemInterface* AbilitySystemInterface = Owner ? Cast<IAbilitySystemInterface>(Owner) : nullptr;
+	UAbilitySystemComponent* ASC = AbilitySystemInterface ? AbilitySystemInterface->GetAbilitySystemComponent() : nullptr;
+	
+	if (!ASC)
+	{
+		return;
+	}
+	
+	FGameplayEventData Payload;
+	Payload.EventTag = AssassinGameplayTags::Event_Attack_Trace_Begin;
+	Payload.Instigator = Owner;
+	Payload.OptionalObject = this;
+	
+	ASC->HandleGameplayEvent(AssassinGameplayTags::Event_Attack_Trace_Begin, &Payload);
 }
 
 void UAnimNotifyState_GASAttackTrace::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime, const FAnimNotifyEventReference& EventReference)
@@ -42,6 +58,8 @@ void UAnimNotifyState_GASAttackTrace::NotifyTick(USkeletalMeshComponent* MeshCom
 	FGameplayEventData Payload;
 	Payload.EventTag = AssassinGameplayTags::Event_Attack_Hit;
 	Payload.Instigator = Owner;
+	Payload.OptionalObject = this;
+	
 	ASC->HandleGameplayEvent(AssassinGameplayTags::Event_Attack_Hit, &Payload);
 }
 

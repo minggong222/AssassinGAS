@@ -20,4 +20,5 @@ namespace AssassinGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Ability_Dodge, "Ability.Dodge");
 	
 	UE_DEFINE_GAMEPLAY_TAG(Event_Attack_Hit, "Event.Attack.Hit");
+	UE_DEFINE_GAMEPLAY_TAG(Event_Attack_Trace_Begin, "Event.Attack.Trace.Begin");
 }
