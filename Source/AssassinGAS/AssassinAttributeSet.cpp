@@ -86,5 +86,4 @@ void UAssassinAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCa
 
 		UE_LOG(LogTemp, Warning, TEXT("[GAS][Death] State.Dead applied. Health=%.1f"), GetHealth());
 	}
-	UE_LOG(LogTemp, Display, TEXT("[GAS][Attribute] Health=%.1f/%.1f | Stamina=%.1f/%.1f | AttackPower=%.1f | Defense=%.1f | CritChance=%.1f | CritMultiplier=%.2f | Dead=%d"), GetHealth(), GetMaxHealth(), GetStamina(), GetMaxStamina(), GetAttackPower(), GetDefense(), GetCriticalChance(), GetCriticalDamageMultiplier(), ASC ? ASC->GetGameplayTagCount(AssassinGameplayTags::State_Dead) : 0);
 }

@@ -156,13 +156,10 @@ void AAssassinGASCharacter::InputAttack()
 
 	FGameplayTagContainer AbilityTags;
 	AbilityTags.AddTag(AssassinGameplayTags::Ability_Attack);
-	const bool bActivated = ASC->TryActivateAbilitiesByTag(AbilityTags, true);
-
-	UE_LOG(LogTemp, Display, TEXT("[Input][Attack] Activated=%d | Dead=%d | Stunned=%d | Sprinting=%d"),
-		bActivated,
-		ASC->GetGameplayTagCount(AssassinGameplayTags::State_Dead),
-		ASC->GetGameplayTagCount(AssassinGameplayTags::State_Stunned),
-		ASC->GetGameplayTagCount(AssassinGameplayTags::State_Sprinting));
+	if (!ASC->TryActivateAbilitiesByTag(AbilityTags, true))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Input][Attack] Activation Failed"));
+	}
 }
 
 void AAssassinGASCharacter::InputHeal()

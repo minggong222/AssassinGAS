@@ -73,8 +73,6 @@ void UAssassinAttackAbility::ActivateAbility(const FGameplayAbilitySpecHandle Ha
     
     EventTask->ReadyForActivation();
     MontageTask->ReadyForActivation();
-    
-    UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Montage Started | Montage=%s | Attacking=%d"), *AttackMontage->GetName(), SourceASC->GetGameplayTagCount(AssassinGameplayTags::State_Attacking));
 }
 
 void UAssassinAttackAbility::OnAttackTraceEvent(FGameplayEventData Payload)
@@ -90,7 +88,6 @@ void UAssassinAttackAbility::OnAttackTraceEvent(FGameplayEventData Payload)
 
     if (bHasAttackTraceFrame && LastAttackTraceFrame == GFrameCounter)
     {
-        UE_LOG(LogTemp, Warning, TEXT("[GA_Attack] Duplicate Trace Skipped | Frame=%llu"), GFrameCounter);
         return;
     }
 
@@ -104,8 +101,6 @@ void UAssassinAttackAbility::OnAttackTraceEvent(FGameplayEventData Payload)
     
     TArray<FHitResult> HitResults;
     const bool bHit = AvatarActor->GetWorld()->SweepMultiByChannel(HitResults, TraceStart, TraceEnd, FQuat::Identity, ECC_Pawn, AttackShape, QueryParams);
-    
-    UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Trace Executed | Frame=%llu | Hit=%d | HitCount=%d | Start=%s | End=%s"), GFrameCounter, bHit, HitResults.Num(), *TraceStart.ToString(), *TraceEnd.ToString());
     
     if (!bHit)
     {
@@ -138,7 +133,6 @@ void UAssassinAttackAbility::OnAttackTraceEvent(FGameplayEventData Payload)
         
         if (TargetASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Dead))
         {
-            UE_LOG(LogTemp, Warning, TEXT("[GA_Attack] Target is already dead: %s"), *TargetActor->GetName());
             continue;
         }
 
@@ -156,7 +150,7 @@ void UAssassinAttackAbility::OnAttackTraceEvent(FGameplayEventData Payload)
 
             if (TargetAttributes)
             {
-                UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Target=%s Health=%.1f/%.1f Dead=%d"), *TargetActor->GetName(), TargetAttributes->GetHealth(), TargetAttributes->GetMaxHealth(), TargetASC->GetGameplayTagCount(AssassinGameplayTags::State_Dead));
+                UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Hit | Target=%s | Health=%.1f/%.1f"), *TargetActor->GetName(), TargetAttributes->GetHealth(), TargetAttributes->GetMaxHealth());
             }
         }
         else
@@ -171,8 +165,6 @@ void UAssassinAttackAbility::OnAttackTraceEvent(FGameplayEventData Payload)
 
 void UAssassinAttackAbility::OnAttackMontageCompleted()
 {
-    UE_LOG(LogTemp, Display, TEXT("[GA_Attack] Montage Completed"));
-
     if (IsActive())
     {
         EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);

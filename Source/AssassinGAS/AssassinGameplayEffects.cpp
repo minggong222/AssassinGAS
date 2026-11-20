@@ -57,8 +57,6 @@ void UAssassinDamageExecution::Execute_Implementation(const FGameplayEffectCusto
 	const float FinalDamage = BaseDamage * (bIsCritical ? CriticalDamageMultiplier : 1.0f);
 	
 	OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(UAssassinAttributeSet::GetHealthAttribute(), EGameplayModOp::Additive, -FinalDamage));
-
-	UE_LOG(LogTemp, Display, TEXT("[Execution][Damage] AttackPower=%.1f | Defense=%.1f | BaseDamage=%.1f | CritChance=%.1f%% | CritRoll=%.2f | Critical=%d | CritMultiplier=%.2f | FinalDamage=%.1f"), AttackPower, Defense, BaseDamage, CriticalChance, CriticalRoll, bIsCritical, CriticalDamageMultiplier, FinalDamage);
 }
 
 UAssassinDamageEffect::UAssassinDamageEffect()

@@ -42,16 +42,10 @@ void UAnimNotifyState_GASAttackTrace::NotifyTick(USkeletalMeshComponent* MeshCom
 	FGameplayEventData Payload;
 	Payload.EventTag = AssassinGameplayTags::Event_Attack_Hit;
 	Payload.Instigator = Owner;
-	UE_LOG(LogTemp, Warning, TEXT("[AttackTrace] NotifyTick | Frame=%llu | Mesh=%s"), GFrameCounter, *GetNameSafe(MeshComp));
 	ASC->HandleGameplayEvent(AssassinGameplayTags::Event_Attack_Hit, &Payload);
 }
 
 void UAnimNotifyState_GASAttackTrace::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
-
-	if (MeshComp && MeshComp->GetOwner())
-	{
-		UE_LOG(LogTemp, Display, TEXT("[AttackTrace] Window End | Owner=%s"), *MeshComp->GetOwner()->GetName());
-	}
 }
