@@ -19,7 +19,8 @@ public:
 	AAssassinEnemyAIController();
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
-	
+	virtual void OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result) override;
+
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	TObjectPtr<UBehaviorTree> BehaviorTreeAsset;
 };

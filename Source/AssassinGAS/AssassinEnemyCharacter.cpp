@@ -3,10 +3,12 @@
 
 #include "AssassinEnemyCharacter.h"
 #include "AIController.h"
+#include "Components/SkeletalMeshComponent.h"
+
 AAssassinEnemyCharacter::AAssassinEnemyCharacter()
 {
-	PrimaryActorTick.bCanEverTick = false;
-	
 	AIControllerClass = AAIController::StaticClass();
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+
+	GetMesh()->SetCanEverAffectNavigation(false);
 }
