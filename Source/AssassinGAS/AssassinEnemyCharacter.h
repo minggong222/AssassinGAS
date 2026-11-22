@@ -18,4 +18,9 @@ class ASSASSINGAS_API AAssassinEnemyCharacter : public AAssassinCharacterBase
 	
 public:
 	AAssassinEnemyCharacter();
+	
+	const TArray<TObjectPtr<AActor>>& GetPatrolPoints() const { return PatrolPoints; }
+protected:
+	UPROPERTY(EditInstanceOnly, Category = "AI|Patrol")
+	TArray<TObjectPtr<AActor>> PatrolPoints;
 };
