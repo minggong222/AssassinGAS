@@ -18,10 +18,4 @@ class ASSASSINGAS_API AAssassinEnemyCharacter : public AAssassinCharacterBase
 	
 public:
 	AAssassinEnemyCharacter();
-protected:
-	UPROPERTY(VisibleAnywhere, Category = "Visual")
-	TObjectPtr<UStaticMeshComponent> BodyMesh;
-	
-	UPROPERTY(VisibleAnywhere, Category = "Visual")
-	TObjectPtr<UStaticMeshComponent> HeadMesh;
 };
