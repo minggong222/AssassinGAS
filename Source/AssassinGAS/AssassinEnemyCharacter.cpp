@@ -2,8 +2,11 @@
 
 
 #include "AssassinEnemyCharacter.h"
-
+#include "AIController.h"
 AAssassinEnemyCharacter::AAssassinEnemyCharacter()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	
+	AIControllerClass = AAIController::StaticClass();
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }

@@ -153,22 +153,5 @@ void AAssassinCharacterBase::InitializeAbilityActorInfo()
 	if (AbilitySystemComponent)
 	{
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
-
-#if WITH_EDITOR
-		if (GetWorld() && GetWorld()->IsGameWorld())
-		{
-			ApplyGameplayEffectToSelf(UAssassinDamageEffect::StaticClass());
-			UE_LOG(LogTemp, Display, TEXT("[GAS Test] Damage: Health = %.1f"), AttributeSet->GetHealth());
-
-			ApplyGameplayEffectToSelf(UAssassinHealEffect::StaticClass());
-			UE_LOG(LogTemp, Display, TEXT("[GAS Test] Heal: Health = %.1f"), AttributeSet->GetHealth());
-
-			ApplyGameplayEffectToSelf(UAssassinStaminaCostEffect::StaticClass());
-			UE_LOG(LogTemp, Display, TEXT("[GAS Test] Stamina Cost: Stamina = %.1f"), AttributeSet->GetStamina());
-
-			ApplyGameplayEffectToSelf(UAssassinStaminaRestoreEffect::StaticClass());
-			UE_LOG(LogTemp, Display, TEXT("[GAS Test] Stamina Restore: Stamina = %.1f"), AttributeSet->GetStamina());
-		}
-#endif
 	}
 }
