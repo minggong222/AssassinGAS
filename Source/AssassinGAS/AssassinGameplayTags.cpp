@@ -10,6 +10,7 @@ namespace AssassinGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(State_Hidden, "State.Hidden");
 
 	UE_DEFINE_GAMEPLAY_TAG(Ability_Attack, "Ability.Attack");
+	UE_DEFINE_GAMEPLAY_TAG(Ability_HitReact, "Ability.HitReact");
 	UE_DEFINE_GAMEPLAY_TAG(Ability_Heal, "Ability.Heal");
 	UE_DEFINE_GAMEPLAY_TAG(Ability_Sprint, "Ability.Sprint");
 	

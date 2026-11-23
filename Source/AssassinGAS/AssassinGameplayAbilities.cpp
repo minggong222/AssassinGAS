@@ -7,6 +7,8 @@
 #include "AssassinGameplayTags.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "AIController.h"
+#include "BrainComponent.h"
 #include "Engine/World.h"
 #include "CollisionQueryParams.h"
 #include "CollisionShape.h"
@@ -558,4 +560,143 @@ void UAssassinDodgeAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, 
         ASC ? ASC->GetGameplayTagCount(AssassinGameplayTags::State_Dodging) : 0,
         Attributes ? Attributes->GetStamina() : 0.0f,
         *EndLocation.ToString());
+}
+
+UAssassinHitReactAbility::UAssassinHitReactAbility()
+{
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+
+	FGameplayTagContainer AssetTags;
+	AssetTags.AddTag(AssassinGameplayTags::Ability_HitReact);
+	SetAssetTags(AssetTags);
+
+	ActivationOwnedTags.AddTag(AssassinGameplayTags::State_Stunned);
+	ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Dead);
+}
+
+void UAssassinHitReactAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+{
+	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+
+	ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+
+	if (!Character || !ASC || !HitReactMontage)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[GA_HitReact] Invalid Reference | Character=%d ASC=%d Montage=%d"), Character != nullptr, ASC != nullptr, HitReactMontage != nullptr);
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+
+	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, HitReactMontage, 1.0f);
+
+	if (!MontageTask)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[GA_HitReact] Failed to Create Montage Task"));
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+	
+	if (AAIController* AIController = Cast<AAIController>(Character->GetController()))
+	{
+		if (UBrainComponent* BrainComponent = AIController->GetBrainComponent())
+		{
+			BrainComponent->PauseLogic(TEXT("Hit Reaction"));
+			bBrainPaused = true;
+
+			UE_LOG(LogTemp, Display, TEXT("[GA_HitReact] AI Logic Paused | Controller=%s"), *AIController->GetName());
+		}
+
+		AIController->StopMovement();
+	}
+
+	FGameplayTagContainer CancelTags;
+	CancelTags.AddTag(AssassinGameplayTags::Ability_Attack);
+	CancelTags.AddTag(AssassinGameplayTags::Ability_Sprint);
+	CancelTags.AddTag(AssassinGameplayTags::Ability_Jump);
+	ASC->CancelAbilities(&CancelTags, nullptr, this);
+
+	if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
+	{
+		PreviousMovementMode = static_cast<uint8>(Movement->MovementMode);
+		PreviousCustomMovementMode = Movement->CustomMovementMode;
+		bMovementDisabled = true;
+
+		Movement->StopMovementImmediately();
+		Movement->DisableMovement();
+	}
+
+	MontageTask->OnCompleted.AddDynamic(this, &UAssassinHitReactAbility::OnHitReactMontageCompleted);
+	MontageTask->OnInterrupted.AddDynamic(this, &UAssassinHitReactAbility::OnHitReactMontageInterrupted);
+	MontageTask->OnCancelled.AddDynamic(this, &UAssassinHitReactAbility::OnHitReactMontageCancelled);
+	MontageTask->ReadyForActivation();
+
+	UE_LOG(LogTemp, Display, TEXT("[GA_HitReact] Started | Character=%s | Montage=%s"), *Character->GetName(), *HitReactMontage->GetName());
+}
+
+void UAssassinHitReactAbility::OnHitReactMontageCompleted()
+{
+	if (IsActive())
+	{
+		EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, false);
+	}
+}
+
+void UAssassinHitReactAbility::OnHitReactMontageInterrupted()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[GA_HitReact] Montage Interrupted"));
+
+	if (IsActive())
+	{
+		EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, true);
+	}
+}
+
+void UAssassinHitReactAbility::OnHitReactMontageCancelled()
+{
+	UE_LOG(LogTemp, Warning, TEXT("[GA_HitReact] Montage Cancelled"));
+
+	if (IsActive())
+	{
+		EndAbility(GetCurrentAbilitySpecHandle(), GetCurrentActorInfo(), GetCurrentActivationInfo(), true, true);
+	}
+}
+
+void UAssassinHitReactAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
+{
+	ACharacter* Character = ActorInfo ? Cast<ACharacter>(ActorInfo->AvatarActor.Get()) : nullptr;
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+
+	const bool bCanResumeAI = !ASC || !ASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Dead);
+
+	if (bMovementDisabled && Character && bCanResumeAI)
+	{
+		if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
+		{
+			Movement->SetMovementMode(static_cast<EMovementMode>(PreviousMovementMode), PreviousCustomMovementMode);
+		}
+	}
+
+	bMovementDisabled = false;
+
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+
+	if (bBrainPaused)
+	{
+		if (bCanResumeAI && Character)
+		{
+			if (AAIController* AIController = Cast<AAIController>(Character->GetController()))
+			{
+				if (UBrainComponent* BrainComponent = AIController->GetBrainComponent())
+				{
+					BrainComponent->ResumeLogic(TEXT("Hit Reaction Ended"));
+					UE_LOG(LogTemp, Display, TEXT("[GA_HitReact] AI Logic Resumed | Controller=%s"), *AIController->GetName());
+				}
+			}
+		}
+
+		bBrainPaused = false;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT("[GA_HitReact] Ended | Cancelled=%d"), bWasCancelled);
 }

@@ -11,6 +11,7 @@ namespace AssassinGameplayTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(State_Hidden);
 
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_HitReact);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Heal);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Sprint);
 	

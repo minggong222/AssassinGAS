@@ -84,12 +84,21 @@ void UAssassinAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCa
 	{
 		ASC->AddLooseGameplayTag(AssassinGameplayTags::State_Dead, 1, EGameplayTagReplicationState::None);
 		ASC->CancelAllAbilities(nullptr);
-		
+
 		if (AAssassinCharacterBase* Character = Cast<AAssassinCharacterBase>(ASC->GetAvatarActor()))
 		{
 			Character->HandleDeath();
 		}
 
 		UE_LOG(LogTemp, Warning, TEXT("[GAS][Death] State.Dead applied. Health=%.1f"), GetHealth());
+	}
+	else if (Attribute == GetHealthAttribute() && Data.EvaluatedData.Magnitude < 0.0f && ASC && GetHealth() > 0.0f && !ASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Dead))
+	{
+		FGameplayTagContainer AbilityTags;
+		AbilityTags.AddTag(AssassinGameplayTags::Ability_HitReact);
+
+		const bool bActivated = ASC->TryActivateAbilitiesByTag(AbilityTags, true);
+
+		UE_LOG(LogTemp, Display, TEXT("[GAS][HitReact] Activated=%d | Target=%s | Health=%.1f"), bActivated, *GetNameSafe(ASC->GetAvatarActor()), GetHealth());
 	}
 }

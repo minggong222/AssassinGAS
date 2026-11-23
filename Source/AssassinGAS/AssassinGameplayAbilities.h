@@ -115,3 +115,34 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage> DodgeMontage;
 };
+
+UCLASS()
+class ASSASSINGAS_API UAssassinHitReactAbility : public UGameplayAbility
+{
+	GENERATED_BODY()
+
+public:
+	UAssassinHitReactAbility();
+
+	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
+
+protected:
+	UFUNCTION()
+	void OnHitReactMontageCompleted();
+
+	UFUNCTION()
+	void OnHitReactMontageInterrupted();
+
+	UFUNCTION()
+	void OnHitReactMontageCancelled();
+
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage> HitReactMontage;
+
+	uint8 PreviousMovementMode = 0;
+	uint8 PreviousCustomMovementMode = 0;
+	bool bMovementDisabled = false;
+	bool bBrainPaused = false;
+};
