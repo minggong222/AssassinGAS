@@ -35,6 +35,18 @@ UAbilitySystemComponent* AAssassinCharacterBase::GetAbilitySystemComponent() con
 	return AbilitySystemComponent;
 }
 
+void AAssassinCharacterBase::SetLastHitDirection(const FVector& DirectionToInstigator)
+{
+	LastHitDirection = DirectionToInstigator.GetSafeNormal2D();
+}
+
+FVector AAssassinCharacterBase::ConsumeLastHitDirection()
+{
+	const FVector Direction = LastHitDirection;
+	LastHitDirection = FVector::ZeroVector;
+	return Direction;
+}
+
 bool AAssassinCharacterBase::ApplyGameplayEffectToSelf(TSubclassOf<UGameplayEffect> EffectClass, float Level)
 {
 	if (!AbilitySystemComponent || !EffectClass)
@@ -64,7 +76,13 @@ void AAssassinCharacterBase::HandleDeath()
 	}
 	
 	bDeathHandled = true;
-	
+
+	if (AbilitySystemComponent && AbilitySystemComponent->HasMatchingGameplayTag(AssassinGameplayTags::State_Hidden))
+	{
+		UnCrouch();
+		AbilitySystemComponent->RemoveLooseGameplayTag(AssassinGameplayTags::State_Hidden, 1, EGameplayTagReplicationState::None);
+	}
+
 	if (AAIController* AIController = Cast<AAIController>(GetController()))
 	{
 		AIController->StopMovement();

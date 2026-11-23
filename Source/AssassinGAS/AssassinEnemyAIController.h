@@ -12,6 +12,7 @@
  */
 class UBehaviorTree;
 class UAISenseConfig_Sight;
+class AAssassinGASCharacter;
 
 UCLASS()
 class ASSASSINGAS_API AAssassinEnemyAIController : public AAIController
@@ -19,6 +20,8 @@ class ASSASSINGAS_API AAssassinEnemyAIController : public AAIController
 	GENERATED_BODY()
 public:
 	AAssassinEnemyAIController();
+	
+	void RefreshPlayerStealthState(AAssassinGASCharacter* Player);
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
 	

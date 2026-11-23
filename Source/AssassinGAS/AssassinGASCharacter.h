@@ -103,6 +103,7 @@ private:
 	void InputJumpStarted();
 	void InputJumpEnded();
 	void InputDodge();
+	void InputStealthToggle();
 	
 	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> PerceptionStimuliSource;

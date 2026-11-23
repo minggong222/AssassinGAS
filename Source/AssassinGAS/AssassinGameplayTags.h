@@ -12,6 +12,7 @@ namespace AssassinGameplayTags
 
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_HitReact);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Stealth);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Heal);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Sprint);
 	
@@ -23,4 +24,5 @@ namespace AssassinGameplayTags
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_Hit);
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_Trace_Begin);
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_HitReact);
 }

@@ -141,8 +141,22 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage> HitReactMontage;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage> BackHitReactMontage;
+
 	uint8 PreviousMovementMode = 0;
 	uint8 PreviousCustomMovementMode = 0;
 	bool bMovementDisabled = false;
 	bool bBrainPaused = false;
+};
+
+UCLASS()
+class ASSASSINGAS_API UAssassinStealthAbility : public UGameplayAbility
+{
+	GENERATED_BODY()
+
+public:
+	UAssassinStealthAbility();
+
+	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
 };

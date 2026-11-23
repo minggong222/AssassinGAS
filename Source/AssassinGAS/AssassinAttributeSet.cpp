@@ -94,11 +94,20 @@ void UAssassinAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCa
 	}
 	else if (Attribute == GetHealthAttribute() && Data.EvaluatedData.Magnitude < 0.0f && ASC && GetHealth() > 0.0f && !ASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Dead))
 	{
+		AAssassinCharacterBase* HitCharacter = Cast<AAssassinCharacterBase>(ASC->GetAvatarActor());
+		const AActor* HitInstigator = Data.EffectSpec.GetContext().GetInstigator();
+
+		if (HitCharacter)
+		{
+			const FVector DirectionToInstigator = HitInstigator ? HitInstigator->GetActorLocation() - HitCharacter->GetActorLocation() : FVector::ZeroVector;
+			HitCharacter->SetLastHitDirection(DirectionToInstigator);
+		}
+
 		FGameplayTagContainer AbilityTags;
 		AbilityTags.AddTag(AssassinGameplayTags::Ability_HitReact);
 
 		const bool bActivated = ASC->TryActivateAbilitiesByTag(AbilityTags, true);
 
-		UE_LOG(LogTemp, Display, TEXT("[GAS][HitReact] Activated=%d | Target=%s | Health=%.1f"), bActivated, *GetNameSafe(ASC->GetAvatarActor()), GetHealth());
+		UE_LOG(LogTemp, Display, TEXT("[GAS][HitReact] Activated=%d | Instigator=%s | Target=%s | Health=%.1f"), bActivated, *GetNameSafe(HitInstigator), *GetNameSafe(ASC->GetAvatarActor()), GetHealth());
 	}
 }

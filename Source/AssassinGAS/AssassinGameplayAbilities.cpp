@@ -13,12 +13,17 @@
 #include "CollisionQueryParams.h"
 #include "CollisionShape.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Abilities/GameplayAbilityTriggerType.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "CoreGlobals.h"
 #include "AnimNotifyState_GASAttackTrace.h"
+#include "AssassinCharacterBase.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "AssassinGASCharacter.h"
+#include "AssassinEnemyAIController.h"
+#include "EngineUtils.h"
 UAssassinAttackAbility::UAssassinAttackAbility()
 {
     InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
@@ -588,8 +593,27 @@ void UAssassinHitReactAbility::ActivateAbility(const FGameplayAbilitySpecHandle 
 		return;
 	}
 
-	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, HitReactMontage, 1.0f);
+	AAssassinCharacterBase* HitCharacter = Cast<AAssassinCharacterBase>(Character);
+	FVector DirectionToInstigator = HitCharacter ? HitCharacter->ConsumeLastHitDirection() : FVector::ZeroVector;
 
+	if (DirectionToInstigator.IsNearlyZero())
+	{
+		DirectionToInstigator = Character->GetActorForwardVector();
+	}
+
+	FVector CharacterForward = Character->GetActorForwardVector();
+	CharacterForward.Z = 0.0f;
+	CharacterForward.Normalize();
+
+	const float DirectionDot = FVector::DotProduct(CharacterForward, DirectionToInstigator);
+	const bool bHitFromFront = DirectionDot >= 0.0f;
+
+	UAnimMontage* SelectedMontage = bHitFromFront || !BackHitReactMontage ? HitReactMontage : BackHitReactMontage;
+
+	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, SelectedMontage, 1.0f);
+
+	UE_LOG(LogTemp, Display, TEXT("[GA_HitReact] Direction Selected | DirectionVector=%s | Dot=%.2f | Direction=%s | Montage=%s"), *DirectionToInstigator.ToString(), DirectionDot, bHitFromFront ? TEXT("Front") : TEXT("Back"), *GetNameSafe(SelectedMontage));
+	
 	if (!MontageTask)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[GA_HitReact] Failed to Create Montage Task"));
@@ -631,7 +655,7 @@ void UAssassinHitReactAbility::ActivateAbility(const FGameplayAbilitySpecHandle 
 	MontageTask->OnCancelled.AddDynamic(this, &UAssassinHitReactAbility::OnHitReactMontageCancelled);
 	MontageTask->ReadyForActivation();
 
-	UE_LOG(LogTemp, Display, TEXT("[GA_HitReact] Started | Character=%s | Montage=%s"), *Character->GetName(), *HitReactMontage->GetName());
+	UE_LOG(LogTemp, Display, TEXT("[GA_HitReact] Started | Character=%s | Montage=%s"), *Character->GetName(), *SelectedMontage->GetName());
 }
 
 void UAssassinHitReactAbility::OnHitReactMontageCompleted()
@@ -699,4 +723,67 @@ void UAssassinHitReactAbility::EndAbility(const FGameplayAbilitySpecHandle Handl
 	}
 
 	UE_LOG(LogTemp, Display, TEXT("[GA_HitReact] Ended | Cancelled=%d"), bWasCancelled);
+}
+
+UAssassinStealthAbility::UAssassinStealthAbility()
+{
+	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+
+	FGameplayTagContainer AssetTags;
+	AssetTags.AddTag(AssassinGameplayTags::Ability_Stealth);
+	SetAssetTags(AssetTags);
+
+	ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Dead);
+	ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Stunned);
+	ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Attacking);
+	ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Sprinting);
+	ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Dodging);
+	ActivationBlockedTags.AddTag(AssassinGameplayTags::State_Jumping);
+}
+
+void UAssassinStealthAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+{
+	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+
+	AAssassinGASCharacter* Character = Cast<AAssassinGASCharacter>(GetAvatarActorFromActorInfo());
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+
+	if (!Character || !ASC || !CommitAbility(Handle, ActorInfo, ActivationInfo))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[GA_Stealth] Activation Failed"));
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+
+	const bool bWasHidden = ASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Hidden) || Character->bIsCrouched;
+
+	if (bWasHidden)
+	{
+		Character->UnCrouch();
+		ASC->RemoveLooseGameplayTag(AssassinGameplayTags::State_Hidden, 1, EGameplayTagReplicationState::None);
+	}
+	else
+	{
+		if (!Character->CanCrouch())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[GA_Stealth] Cannot Crouch"));
+			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+			return;
+		}
+
+		Character->Crouch();
+
+		ASC->AddLooseGameplayTag(AssassinGameplayTags::State_Hidden, 1, EGameplayTagReplicationState::None);
+	}
+
+	const bool bIsHidden = ASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Hidden);
+
+	for (TActorIterator<AAssassinEnemyAIController> It(Character->GetWorld()); It; ++It)
+	{
+		It->RefreshPlayerStealthState(Character);
+	}
+
+	UE_LOG(LogTemp, Display, TEXT("[GA_Stealth] Toggled | Character=%s | Hidden=%d | Crouched=%d"), *Character->GetName(), bIsHidden, Character->bIsCrouched);
+
+	EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
 }

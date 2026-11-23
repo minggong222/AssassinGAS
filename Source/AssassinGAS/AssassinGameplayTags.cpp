@@ -11,6 +11,7 @@ namespace AssassinGameplayTags
 
 	UE_DEFINE_GAMEPLAY_TAG(Ability_Attack, "Ability.Attack");
 	UE_DEFINE_GAMEPLAY_TAG(Ability_HitReact, "Ability.HitReact");
+	UE_DEFINE_GAMEPLAY_TAG(Ability_Stealth, "Ability.Stealth");
 	UE_DEFINE_GAMEPLAY_TAG(Ability_Heal, "Ability.Heal");
 	UE_DEFINE_GAMEPLAY_TAG(Ability_Sprint, "Ability.Sprint");
 	
@@ -22,4 +23,5 @@ namespace AssassinGameplayTags
 	
 	UE_DEFINE_GAMEPLAY_TAG(Event_Attack_Hit, "Event.Attack.Hit");
 	UE_DEFINE_GAMEPLAY_TAG(Event_Attack_Trace_Begin, "Event.Attack.Trace.Begin");
+	UE_DEFINE_GAMEPLAY_TAG(Event_HitReact, "Event.HitReact");
 }

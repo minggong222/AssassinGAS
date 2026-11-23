@@ -32,6 +32,8 @@ AAssassinGASCharacter::AAssassinGASCharacter()
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
+	GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
+	GetCharacterMovement()->MaxWalkSpeedCrouched = 180.0f;
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
 	// instead of recompiling to adjust them
@@ -62,7 +64,15 @@ AAssassinGASCharacter::AAssassinGASCharacter()
 void AAssassinGASCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->GetNavAgentPropertiesRef().bCanCrouch = true;
+		Movement->SetCrouchedHalfHeight(48.0f);
+
+		UE_LOG(LogTemp, Display, TEXT("[Character][Stealth] Crouch Config | CanCrouch=%d | MovementMode=%d"), Movement->GetNavAgentPropertiesRef().bCanCrouch, static_cast<int32>(Movement->MovementMode));
+	}
+
 	if (PerceptionStimuliSource)
 	{
 		PerceptionStimuliSource->RegisterWithPerceptionSystem();
@@ -94,6 +104,7 @@ void AAssassinGASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	PlayerInputComponent->BindKey(EKeys::LeftShift, IE_Pressed, this, &AAssassinGASCharacter::InputSprintStarted);
 	PlayerInputComponent->BindKey(EKeys::LeftShift, IE_Released, this, &AAssassinGASCharacter::InputSprintEnded);
 	PlayerInputComponent->BindKey(EKeys::LeftControl, IE_Pressed, this, &AAssassinGASCharacter::InputDodge);
+	PlayerInputComponent->BindKey(EKeys::C, IE_Pressed, this, &AAssassinGASCharacter::InputStealthToggle);
 }
 
 void AAssassinGASCharacter::Move(const FInputActionValue& Value)
@@ -289,4 +300,21 @@ void AAssassinGASCharacter::InputDodge()
 		ASC->GetGameplayTagCount(AssassinGameplayTags::State_Dodging),
 		ASC->GetGameplayTagCount(AssassinGameplayTags::State_Jumping),
 		ASC->GetGameplayTagCount(AssassinGameplayTags::State_Dead));
+}
+
+void AAssassinGASCharacter::InputStealthToggle()
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+
+	if (!ASC)
+	{
+		return;
+	}
+
+	FGameplayTagContainer AbilityTags;
+	AbilityTags.AddTag(AssassinGameplayTags::Ability_Stealth);
+
+	const bool bActivated = ASC->TryActivateAbilitiesByTag(AbilityTags, true);
+
+	UE_LOG(LogTemp, Display, TEXT("[Input][Stealth] Activated=%d | Hidden=%d | Crouched=%d"), bActivated, ASC->GetGameplayTagCount(AssassinGameplayTags::State_Hidden), bIsCrouched);
 }

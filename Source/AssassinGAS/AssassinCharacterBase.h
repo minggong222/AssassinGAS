@@ -27,6 +27,8 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	bool ApplyGameplayEffectToSelf(TSubclassOf<UGameplayEffect> EffectClass, float Level = 1.0f);
 	virtual void HandleDeath();
+	void SetLastHitDirection(const FVector& DirectionToInstigator);
+	FVector ConsumeLastHitDirection();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -54,6 +56,7 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "GAS")
 	TObjectPtr<UAssassinAttributeSet> AttributeSet;
 	
+	FVector LastHitDirection = FVector::ZeroVector;
 	bool bDefaultAbilitiesGranted = false;
 	bool bDeathHandled = false;
 	bool bDeathAnimationPending = false;
