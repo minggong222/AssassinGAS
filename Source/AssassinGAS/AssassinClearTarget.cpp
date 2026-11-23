@@ -4,6 +4,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BlackboardData.h"
 #include "GameFramework/Actor.h"
+#include "AIController.h"
 
 UAssassinClearTarget::UAssassinClearTarget()
 {
@@ -35,6 +36,11 @@ EBTNodeResult::Type UAssassinClearTarget::ExecuteTask(UBehaviorTreeComponent& Ow
 	}
 
 	AActor* PreviousTarget = Cast<AActor>(Blackboard->GetValueAsObject(TargetActorKey.SelectedKeyName));
+
+	if (AAIController* AIController = OwnerComp.GetAIOwner())
+	{
+		AIController->ClearFocus(EAIFocusPriority::Gameplay);
+	}
 
 	Blackboard->ClearValue(TargetActorKey.SelectedKeyName);
 

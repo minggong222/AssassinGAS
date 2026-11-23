@@ -10,6 +10,9 @@
 #include "Abilities/GameplayAbility.h"
 #include "GameplayAbilitySpec.h"
 #include "GameplayTagContainer.h"
+#include "AIController.h"
+#include "BrainComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 // Sets default values
 AAssassinCharacterBase::AAssassinCharacterBase()
@@ -45,6 +48,34 @@ bool AAssassinCharacterBase::ApplyGameplayEffectToSelf(TSubclassOf<UGameplayEffe
 	
 	AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	return true;
+}
+
+void AAssassinCharacterBase::HandleDeath()
+{
+	if (bDeathHandled)
+	{
+		return;
+	}
+	
+	bDeathHandled = true;
+	
+	if (AAIController* AIController = Cast<AAIController>(GetController()))
+	{
+		AIController->StopMovement();
+		
+		if (UBrainComponent* BrainComponent = AIController->GetBrainComponent())
+		{
+			BrainComponent->StopLogic(TEXT("Character Died"));
+		}
+	}
+	
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->StopMovementImmediately();
+		Movement->DisableMovement();
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("[Character][Death] Movement and AI Stopped | Character=%s"), *GetName());
 }
 
 // Called when the game starts or when spawned

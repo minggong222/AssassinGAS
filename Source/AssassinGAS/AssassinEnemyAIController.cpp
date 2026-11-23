@@ -15,7 +15,7 @@ AAssassinEnemyAIController::AAssassinEnemyAIController()
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
 	SightConfig->SightRadius = 1500.0f;
 	SightConfig->LoseSightRadius = 1800.0f;
-	SightConfig->PeripheralVisionAngleDegrees = 70.0f;
+	SightConfig->PeripheralVisionAngleDegrees = 100.0f;
 
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
@@ -65,6 +65,8 @@ void AAssassinEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAISti
 		BlackboardComponent->SetValueAsVector(TEXT("LastKnownLocation"), Player->GetActorLocation());
 		BlackboardComponent->SetValueAsBool(TEXT("CanSeeTarget"), true);
 
+		SetFocus(Player, EAIFocusPriority::Gameplay);
+
 		UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Sight] Detected | Target=%s | Location=%s"), *Player->GetName(), *Player->GetActorLocation().ToString());
 	}
 	else
@@ -76,6 +78,9 @@ void AAssassinEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAISti
 
 		BlackboardComponent->SetValueAsBool(TEXT("CanSeeTarget"), false);
 
-		UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Sight] LostSight | Target=%s | LastKnown=%s"), *Player->GetName(), *BlackboardComponent->GetValueAsVector(TEXT("LastKnownLocation")).ToString());
+		const FVector LastKnownLocation = BlackboardComponent->GetValueAsVector(TEXT("LastKnownLocation"));
+		SetFocalPoint(LastKnownLocation, EAIFocusPriority::Gameplay);
+
+		UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Sight] LostSight | Target=%s | LastKnown=%s"), *Player->GetName(), *LastKnownLocation.ToString());
 	}
 }

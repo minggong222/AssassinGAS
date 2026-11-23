@@ -5,15 +5,16 @@
 #include "GameplayEffectExtension.h"
 #include "AssassinGameplayTags.h"
 #include "AbilitySystemComponent.h"
+#include "AssassinCharacterBase.h"
 
 UAssassinAttributeSet::UAssassinAttributeSet()
 	: Health(100.0f),
 	  MaxHealth(100.0f),
 	  Stamina(100.0f),
 	  MaxStamina(100.0f),
-	  AttackPower(10.0f),
-	  Defense(5.0f),
-	  CriticalChance(0.0f),
+	  AttackPower(20.0f),
+	  Defense(2.0f),
+	  CriticalChance(10.0f),
 	  CriticalDamageMultiplier(2.0f)
 {
 }
@@ -83,6 +84,11 @@ void UAssassinAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCa
 	{
 		ASC->AddLooseGameplayTag(AssassinGameplayTags::State_Dead, 1, EGameplayTagReplicationState::None);
 		ASC->CancelAllAbilities(nullptr);
+		
+		if (AAssassinCharacterBase* Character = Cast<AAssassinCharacterBase>(ASC->GetAvatarActor()))
+		{
+			Character->HandleDeath();
+		}
 
 		UE_LOG(LogTemp, Warning, TEXT("[GAS][Death] State.Dead applied. Health=%.1f"), GetHealth());
 	}

@@ -25,6 +25,7 @@ public:
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	bool ApplyGameplayEffectToSelf(TSubclassOf<UGameplayEffect> EffectClass, float Level = 1.0f);
+	virtual void HandleDeath();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -50,7 +51,8 @@ private:
 	TObjectPtr<UAssassinAttributeSet> AttributeSet;
 	
 	bool bDefaultAbilitiesGranted = false;
-
+	bool bDeathHandled = false;
+	
 	void GrantDefaultAbilities();
 	void InitializeAbilityActorInfo();
 };
