@@ -11,6 +11,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
 class AController;
+class UAIPerceptionStimuliSourceComponent;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -55,7 +56,8 @@ public:
 	AAssassinGASCharacter();	
 
 protected:
-
+	virtual void BeginPlay() override;
+	
 	/** Initialize input action bindings */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -101,5 +103,8 @@ private:
 	void InputJumpStarted();
 	void InputJumpEnded();
 	void InputDodge();
+	
+	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
+	TObjectPtr<UAIPerceptionStimuliSourceComponent> PerceptionStimuliSource;
 };
 

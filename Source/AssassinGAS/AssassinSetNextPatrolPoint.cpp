@@ -7,8 +7,6 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BlackboardData.h"
-#include "NavigationSystem.h"
-#include "NavigationData.h"
 
 UAssassinSetNextPatrolPoint::UAssassinSetNextPatrolPoint()
 {
@@ -65,48 +63,11 @@ EBTNodeResult::Type UAssassinSetNextPatrolPoint::ExecuteTask(UBehaviorTreeCompon
 			continue;
 		}
 
-	const FVector GoalLocation = PatrolPoint->GetActorLocation();
-	Blackboard->SetValueAsVector(PatrolLocationKey.SelectedKeyName, GoalLocation);
-	Blackboard->SetValueAsInt(PatrolIndexKey.SelectedKeyName, (PointIndex + 1) % PointCount);
+		Blackboard->SetValueAsVector(PatrolLocationKey.SelectedKeyName, PatrolPoint->GetActorLocation());
+		Blackboard->SetValueAsInt(PatrolIndexKey.SelectedKeyName, (PointIndex + 1) % PointCount);
 
-	const FVector AgentLocation = AIController->GetNavAgentLocation();
-	const FVector BlackboardLocation = Blackboard->GetValueAsVector(PatrolLocationKey.SelectedKeyName);
-	const FNavAgentProperties& AgentProperties = Enemy->GetNavAgentPropertiesRef();
-	UNavigationSystemV1* NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(Enemy->GetWorld());
-	const ANavigationData* NavData = NavigationSystem ? NavigationSystem->GetNavDataForProps(AgentProperties) : nullptr;
-
-	FNavLocation ProjectedStart;
-	FNavLocation ProjectedGoal;
-	const FVector ProjectionExtent(200.0f, 200.0f, 300.0f);
-
-	const bool bStartProjected = NavigationSystem && NavData && NavigationSystem->ProjectPointToNavigation(AgentLocation, ProjectedStart, ProjectionExtent, NavData, nullptr);
-	const bool bGoalProjected = NavigationSystem && NavData && NavigationSystem->ProjectPointToNavigation(GoalLocation, ProjectedGoal, ProjectionExtent, NavData, nullptr);
-
-	bool bPathFound = false;
-
-	if (bStartProjected && bGoalProjected)
-	{
-	    FPathFindingQuery Query(Enemy, *NavData, ProjectedStart.Location, ProjectedGoal.Location);
-	    const FPathFindingResult PathResult = NavigationSystem->FindPathSync(Query, EPathFindingMode::Regular);
-	    bPathFound = PathResult.IsSuccessful();
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("[EnemyAI][NavCheck] Key=%s | BB=%s | Target=%s | AgentRadius=%.1f | AgentHeight=%.1f | NavData=%s | StartProjected=%d | GoalProjected=%d | PathFound=%d"),
-	    *PatrolLocationKey.SelectedKeyName.ToString(),
-	    *BlackboardLocation.ToString(),
-	    *GoalLocation.ToString(),
-	    AgentProperties.AgentRadius,
-	    AgentProperties.AgentHeight,
-	    *GetNameSafe(NavData),
-	    bStartProjected,
-	    bGoalProjected,
-	    bPathFound);
-
-	UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Patrol] Selected | Point=%s | Index=%d/%d"), *PatrolPoint->GetName(), PointIndex, PointCount);
+		UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Patrol] Selected | Point=%s | Index=%d/%d"), *PatrolPoint->GetName(), PointIndex, PointCount);
 
 		return EBTNodeResult::Succeeded;
 	}
-
-	UE_LOG(LogTemp, Warning, TEXT("[EnemyAI][Patrol] All Patrol Points are Invalid | Enemy=%s"), *Enemy->GetName());
-	return EBTNodeResult::Failed;
 }

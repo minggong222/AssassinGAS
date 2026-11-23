@@ -16,8 +16,8 @@
 #include "AssassinGameplayTags.h"
 #include "AssassinAttributeSet.h"
 #include "GameplayTagContainer.h"
-#include "AbilitySystemComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Sight.h"
 
 AAssassinGASCharacter::AAssassinGASCharacter()
 {
@@ -53,8 +53,20 @@ AAssassinGASCharacter::AAssassinGASCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
+	PerceptionStimuliSource = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("PerceptionStimuliSource"));
+	PerceptionStimuliSource->RegisterForSense(UAISense_Sight::StaticClass());
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+}
+
+void AAssassinGASCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (PerceptionStimuliSource)
+	{
+		PerceptionStimuliSource->RegisterWithPerceptionSystem();
+	}
 }
 
 void AAssassinGASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

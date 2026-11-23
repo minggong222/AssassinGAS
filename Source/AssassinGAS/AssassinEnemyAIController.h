@@ -4,12 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "Perception/AIPerceptionTypes.h"
 #include "AssassinEnemyAIController.generated.h"
 
 /**
  * 
  */
 class UBehaviorTree;
+class UAIPerceptionComponent;
+class UAISenseConfig_Sight;
 
 UCLASS()
 class ASSASSINGAS_API AAssassinEnemyAIController : public AAIController
@@ -19,7 +22,15 @@ public:
 	AAssassinEnemyAIController();
 protected:
 	virtual void OnPossess(APawn* InPawn) override;
-	virtual void OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result) override;
+	
+	UFUNCTION()
+	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
+
+	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
+	TObjectPtr<UAIPerceptionComponent> PerceptionComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
+	TObjectPtr<UAISenseConfig_Sight> SightConfig;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	TObjectPtr<UBehaviorTree> BehaviorTreeAsset;
