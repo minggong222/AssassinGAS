@@ -9,19 +9,20 @@
 
 AAssassinEnemyAIController::AAssassinEnemyAIController()
 {
-	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>("AIPerceptionComponent");
-	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>("SightConfig");
-	
+	UAIPerceptionComponent* AIPerception = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("EnemyAIPerception"));
+	SetPerceptionComponent(*AIPerception);
+
+	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
 	SightConfig->SightRadius = 1500.0f;
 	SightConfig->LoseSightRadius = 1800.0f;
 	SightConfig->PeripheralVisionAngleDegrees = 70.0f;
-	
+
 	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
 	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
-	
-	PerceptionComponent->ConfigureSense(*SightConfig);
-	PerceptionComponent->SetDominantSense(UAISense_Sight::StaticClass());
+
+	AIPerception->ConfigureSense(*SightConfig);
+	AIPerception->SetDominantSense(UAISense_Sight::StaticClass());
 }
 
 void AAssassinEnemyAIController::OnPossess(APawn* InPawn)
@@ -40,9 +41,9 @@ void AAssassinEnemyAIController::OnPossess(APawn* InPawn)
 		return;
 	}
 
-	if (PerceptionComponent)
+	if (UAIPerceptionComponent* AIPerception = GetAIPerceptionComponent())
 	{
-		PerceptionComponent->OnTargetPerceptionUpdated.AddUniqueDynamic(this, &AAssassinEnemyAIController::OnTargetPerceptionUpdated);
+		AIPerception->OnTargetPerceptionUpdated.AddUniqueDynamic(this, &AAssassinEnemyAIController::OnTargetPerceptionUpdated);
 	}
 
 	UE_LOG(LogTemp, Display, TEXT("[EnemyAI] BehaviorTree Started | Controller=%s | Pawn=%s"), *GetName(), *GetNameSafe(InPawn));
@@ -51,30 +52,30 @@ void AAssassinEnemyAIController::OnPossess(APawn* InPawn)
 void AAssassinEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
 	AAssassinGASCharacter* Player = Cast<AAssassinGASCharacter>(Actor);
-	UBlackboardComponent* Blackboard = GetBlackboardComponent();
-	
-	if (!IsValid(Player) || !Blackboard)
+	UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
+
+	if (!IsValid(Player) || !BlackboardComponent)
 	{
 		return;
 	}
-	
+
 	if (Stimulus.WasSuccessfullySensed())
 	{
-		Blackboard->SetValueAsObject(TEXT("TargetActor"), Player);
-		Blackboard->SetValueAsVector(TEXT("LastKnownLocation"), Player->GetActorLocation());
-		Blackboard->SetValueAsBool(TEXT("CanSeeTarget"), true);
-		
+		BlackboardComponent->SetValueAsObject(TEXT("TargetActor"), Player);
+		BlackboardComponent->SetValueAsVector(TEXT("LastKnownLocation"), Player->GetActorLocation());
+		BlackboardComponent->SetValueAsBool(TEXT("CanSeeTarget"), true);
+
 		UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Sight] Detected | Target=%s | Location=%s"), *Player->GetName(), *Player->GetActorLocation().ToString());
 	}
 	else
 	{
-		if (Blackboard->GetValueAsObject(TEXT("TargetActor")) != Player)
+		if (BlackboardComponent->GetValueAsObject(TEXT("TargetActor")) != Player)
 		{
 			return;
 		}
-		
-		Blackboard->SetValueAsBool(TEXT("CanSeeTarget"), false);
-		
-		UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Sight] LostSight | Target=%s | LastKnown=%s"), *Player->GetName(), *Blackboard->GetValueAsVector(TEXT("LastKnownLocation")).ToString());
+
+		BlackboardComponent->SetValueAsBool(TEXT("CanSeeTarget"), false);
+
+		UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Sight] LostSight | Target=%s | LastKnown=%s"), *Player->GetName(), *BlackboardComponent->GetValueAsVector(TEXT("LastKnownLocation")).ToString());
 	}
 }

@@ -11,7 +11,6 @@
  * 
  */
 class UBehaviorTree;
-class UAIPerceptionComponent;
 class UAISenseConfig_Sight;
 
 UCLASS()
@@ -25,9 +24,6 @@ protected:
 	
 	UFUNCTION()
 	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
-
-	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
-	TObjectPtr<UAIPerceptionComponent> PerceptionComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
 	TObjectPtr<UAISenseConfig_Sight> SightConfig;

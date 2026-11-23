@@ -70,4 +70,7 @@ EBTNodeResult::Type UAssassinSetNextPatrolPoint::ExecuteTask(UBehaviorTreeCompon
 
 		return EBTNodeResult::Succeeded;
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[EnemyAI][Patrol] All Patrol Points are Invalid | Enemy=%s"), *Enemy->GetName());
+	return EBTNodeResult::Failed;
 }
