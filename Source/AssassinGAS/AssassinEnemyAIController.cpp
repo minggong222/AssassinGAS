@@ -6,6 +6,9 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISense_Sight.h"
+#include "AbilitySystemComponent.h"
+#include "AssassinCharacterBase.h"
+#include "AssassinGameplayTags.h"
 
 AAssassinEnemyAIController::AAssassinEnemyAIController()
 {
@@ -51,6 +54,14 @@ void AAssassinEnemyAIController::OnPossess(APawn* InPawn)
 
 void AAssassinEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
+	AAssassinCharacterBase* Enemy = Cast<AAssassinCharacterBase>(GetPawn());
+	UAbilitySystemComponent* EnemyASC = Enemy ? Enemy->GetAbilitySystemComponent() : nullptr;
+
+	if (!EnemyASC || EnemyASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Dead))
+	{
+		return;
+	}
+
 	AAssassinGASCharacter* Player = Cast<AAssassinGASCharacter>(Actor);
 	UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
 

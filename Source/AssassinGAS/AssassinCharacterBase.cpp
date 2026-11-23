@@ -13,6 +13,12 @@
 #include "AIController.h"
 #include "BrainComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Animation/AnimSequence.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Animation/AnimSequence.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 // Sets default values
 AAssassinCharacterBase::AAssassinCharacterBase()
@@ -62,19 +68,48 @@ void AAssassinCharacterBase::HandleDeath()
 	if (AAIController* AIController = Cast<AAIController>(GetController()))
 	{
 		AIController->StopMovement();
-		
+
 		if (UBrainComponent* BrainComponent = AIController->GetBrainComponent())
 		{
 			BrainComponent->StopLogic(TEXT("Character Died"));
 		}
+
+		AIController->ClearFocus(EAIFocusPriority::Gameplay);
+		AIController->ClearFocus(EAIFocusPriority::Move);
+		AIController->ClearFocus(EAIFocusPriority::Default);
+		AIController->SetControlRotation(GetActorRotation());
 	}
+
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationRoll = false;
 	
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
+		Movement->bOrientRotationToMovement = false;
+		Movement->bUseControllerDesiredRotation = false;
 		Movement->StopMovementImmediately();
 		Movement->DisableMovement();
 	}
-	
+
+	if (DeathAnimation && GetMesh())
+	{
+		bDeathAnimationPending = true;
+		GetMesh()->PlayAnimation(DeathAnimation, false);
+
+		if (!GetMesh()->IsPlaying())
+		{
+			bDeathAnimationPending = false;
+			ActivateRagdoll();
+		}
+
+		UE_LOG(LogTemp, Display, TEXT("[Character][Death] Animation Started | Character=%s | Animation=%s"), *GetName(), *DeathAnimation->GetName());
+	}
+	else
+	{
+		ActivateRagdoll();
+	}
+
 	UE_LOG(LogTemp, Warning, TEXT("[Character][Death] Movement and AI Stopped | Character=%s"), *GetName());
 }
 
@@ -132,6 +167,18 @@ void AAssassinCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (!bDeathAnimationPending || !GetMesh())
+	{
+		return;
+	}
+
+	if (GetMesh()->IsPlaying())
+	{
+		return;
+	}
+
+	bDeathAnimationPending = false;
+	ActivateRagdoll();
 }
 
 // Called to bind functionality to input
@@ -139,6 +186,41 @@ void AAssassinCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerIn
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+}
+
+void AAssassinCharacterBase::ActivateRagdoll()
+{
+	if (bRagdollActivated)
+	{
+		return;
+	}
+
+	USkeletalMeshComponent* SkeletalMesh = GetMesh();
+
+	if (!SkeletalMesh)
+	{
+		return;
+	}
+
+	if (!SkeletalMesh->GetPhysicsAsset())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Character][Death] Physics Asset Missing | Character=%s"), *GetName());
+		return;
+	}
+
+	bRagdollActivated = true;
+
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	SkeletalMesh->SetCollisionProfileName(TEXT("Ragdoll"));
+	SkeletalMesh->SetAllBodiesSimulatePhysics(true);
+	SkeletalMesh->SetSimulatePhysics(true);
+	SkeletalMesh->WakeAllRigidBodies();
+
+	UE_LOG(LogTemp, Display, TEXT("[Character][Death] Ragdoll Activated | Character=%s"), *GetName());
 }
 
 void AAssassinCharacterBase::GrantDefaultAbilities()

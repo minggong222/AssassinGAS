@@ -13,6 +13,7 @@ class UAssassinAttributeSet;
 class UGameplayEffect;
 class UGameplayAbility;
 class AController;
+class UAnimSequence;
 
 UCLASS()
 class ASSASSINGAS_API AAssassinCharacterBase : public ACharacter, public IAbilitySystemInterface
@@ -36,6 +37,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Abilities")
 	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Animation|Death")
+	TObjectPtr<UAnimSequence> DeathAnimation;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -52,6 +56,10 @@ private:
 	
 	bool bDefaultAbilitiesGranted = false;
 	bool bDeathHandled = false;
+	bool bDeathAnimationPending = false;
+	bool bRagdollActivated = false;
+
+	void ActivateRagdoll();
 	
 	void GrantDefaultAbilities();
 	void InitializeAbilityActorInfo();
