@@ -17,6 +17,7 @@
 #include "AssassinAttributeSet.h"
 #include "GameplayTagContainer.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Hearing.h"
 #include "Perception/AISense_Sight.h"
 
 AAssassinGASCharacter::AAssassinGASCharacter()
@@ -179,10 +180,15 @@ void AAssassinGASCharacter::InputAttack()
 
 	FGameplayTagContainer AbilityTags;
 	AbilityTags.AddTag(AssassinGameplayTags::Ability_Attack);
-	if (!ASC->TryActivateAbilitiesByTag(AbilityTags, true))
+	const bool bActivated = ASC->TryActivateAbilitiesByTag(AbilityTags, true);
+
+	if (!bActivated)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[Input][Attack] Activation Failed"));
+		return;
 	}
+
+	ReportNoise(1.0f, 1800.0f, FName(TEXT("Attack")));
 }
 
 void AAssassinGASCharacter::InputHeal()
@@ -221,6 +227,12 @@ void AAssassinGASCharacter::InputSprintStarted()
 	FGameplayTagContainer AbilityTags;
 	AbilityTags.AddTag(AssassinGameplayTags::Ability_Sprint);
 	const bool bActivated = ASC->TryActivateAbilitiesByTag(AbilityTags, true);
+
+	if (bActivated)
+	{
+		ReportNoise(0.8f, 1600.0f, FName(TEXT("Sprint")));
+	}
+
 	const UAssassinAttributeSet* Attributes = ASC->GetSet<UAssassinAttributeSet>();
 
 	UE_LOG(LogTemp, Display, TEXT("[Input][Sprint] Activated=%d | Stamina=%.1f | Dead=%d | Attacking=%d | Sprinting=%d"),
@@ -291,7 +303,12 @@ void AAssassinGASCharacter::InputDodge()
 	FGameplayTagContainer DodgeAbilityTags;
 	DodgeAbilityTags.AddTag(AssassinGameplayTags::Ability_Dodge);
 	const bool bActivationAttempted = ASC->TryActivateAbilitiesByTag(DodgeAbilityTags, true);
-	
+
+	if (bActivationAttempted)
+	{
+		ReportNoise(0.75f, 1200.0f, FName(TEXT("Dodge")));
+	}
+
 	const UAssassinAttributeSet* Attributes = ASC->GetSet<UAssassinAttributeSet>();
 	
 	UE_LOG(LogTemp, Display, TEXT("[Input][Dodge] ActivationAttempted=%d | Stamina=%.1f | Dodging=%d | Jumping=%d | Dead=%d"),
@@ -317,4 +334,16 @@ void AAssassinGASCharacter::InputStealthToggle()
 	const bool bActivated = ASC->TryActivateAbilitiesByTag(AbilityTags, true);
 
 	UE_LOG(LogTemp, Display, TEXT("[Input][Stealth] Activated=%d | Hidden=%d | Crouched=%d"), bActivated, ASC->GetGameplayTagCount(AssassinGameplayTags::State_Hidden), bIsCrouched);
+}
+
+void AAssassinGASCharacter::ReportNoise(float Loudness, float MaxRange, FName Tag)
+{
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	UAISense_Hearing::ReportNoiseEvent(this, GetActorLocation(), Loudness, this, MaxRange, Tag);
+
+	UE_LOG(LogTemp, Display, TEXT("[Player][Noise] Reported | Tag=%s | Loudness=%.2f | Range=%.1f"), *Tag.ToString(), Loudness, MaxRange);
 }

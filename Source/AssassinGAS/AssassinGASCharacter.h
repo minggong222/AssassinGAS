@@ -104,6 +104,7 @@ private:
 	void InputJumpEnded();
 	void InputDodge();
 	void InputStealthToggle();
+	void ReportNoise(float Loudness, float MaxRange, FName Tag);
 	
 	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
 	TObjectPtr<UAIPerceptionStimuliSourceComponent> PerceptionStimuliSource;

@@ -9,6 +9,10 @@
 #include "AbilitySystemComponent.h"
 #include "AssassinCharacterBase.h"
 #include "AssassinGameplayTags.h"
+#include "Perception/AISense.h"
+#include "Perception/AISenseConfig_Hearing.h"
+#include "Perception/AISense_Hearing.h"
+#include "Perception/AIPerceptionSystem.h"
 
 namespace
 {
@@ -29,7 +33,14 @@ AAssassinEnemyAIController::AAssassinEnemyAIController()
 	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
 	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
 
+	HearingConfig = CreateDefaultSubobject<UAISenseConfig_Hearing>(TEXT("HearingConfig"));
+	HearingConfig->HearingRange = 2200.0f;
+	HearingConfig->DetectionByAffiliation.bDetectEnemies = true;
+	HearingConfig->DetectionByAffiliation.bDetectNeutrals = true;
+	HearingConfig->DetectionByAffiliation.bDetectFriendlies = true;
+
 	AIPerception->ConfigureSense(*SightConfig);
+	AIPerception->ConfigureSense(*HearingConfig);
 	AIPerception->SetDominantSense(UAISense_Sight::StaticClass());
 }
 
@@ -56,7 +67,9 @@ void AAssassinEnemyAIController::RefreshPlayerStealthState(AAssassinGASCharacter
 
 	for (const FAIStimulus& Stimulus : PerceptionInfo.LastSensedStimuli)
 	{
-		if (Stimulus.WasSuccessfullySensed())
+		const TSubclassOf<UAISense> SenseClass = UAIPerceptionSystem::GetSenseClassForStimulus(this, Stimulus);
+
+		if (SenseClass == UAISense_Sight::StaticClass() && Stimulus.WasSuccessfullySensed())
 		{
 			OnTargetPerceptionUpdated(Player, Stimulus);
 			return;
@@ -90,62 +103,101 @@ void AAssassinEnemyAIController::OnPossess(APawn* InPawn)
 
 void AAssassinEnemyAIController::OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	AAssassinCharacterBase* Enemy = Cast<AAssassinCharacterBase>(GetPawn());
-	UAbilitySystemComponent* EnemyASC = Enemy ? Enemy->GetAbilitySystemComponent() : nullptr;
+    AAssassinCharacterBase* Enemy = Cast<AAssassinCharacterBase>(GetPawn());
+    UAbilitySystemComponent* EnemyASC = Enemy ? Enemy->GetAbilitySystemComponent() : nullptr;
 
-	if (!EnemyASC || EnemyASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Dead))
-	{
-		return;
-	}
+    if (!EnemyASC || EnemyASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Dead))
+    {
+        return;
+    }
 
-	AAssassinGASCharacter* Player = Cast<AAssassinGASCharacter>(Actor);
-	UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
+    AAssassinGASCharacter* Player = Cast<AAssassinGASCharacter>(Actor);
+    UBlackboardComponent* BlackboardComponent = GetBlackboardComponent();
 
-	if (!IsValid(Player) || !BlackboardComponent)
-	{
-		return;
-	}
+    if (!IsValid(Player) || !BlackboardComponent)
+    {
+        return;
+    }
 
-	UAbilitySystemComponent* PlayerASC = Player->GetAbilitySystemComponent();
-	const bool bPlayerHidden = PlayerASC && PlayerASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Hidden);
+    const TSubclassOf<UAISense> SenseClass = UAIPerceptionSystem::GetSenseClassForStimulus(this, Stimulus);
+    const bool bIsSight = SenseClass == UAISense_Sight::StaticClass();
+    const bool bIsHearing = SenseClass == UAISense_Hearing::StaticClass();
 
-	if (bPlayerHidden && GetPawn() && FVector::Dist2D(GetPawn()->GetActorLocation(), Player->GetActorLocation()) > HiddenDetectionRadius)
-	{
-		if (BlackboardComponent->GetValueAsObject(TEXT("TargetActor")) == Player)
-		{
-			const FVector LastKnownLocation = Player->GetActorLocation();
-			BlackboardComponent->SetValueAsVector(TEXT("LastKnownLocation"), LastKnownLocation);
-			BlackboardComponent->SetValueAsBool(TEXT("CanSeeTarget"), false);
-			SetFocalPoint(LastKnownLocation, EAIFocusPriority::Gameplay);
+    if (!bIsSight && !bIsHearing)
+    {
+        return;
+    }
 
-			UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Stealth] Player Hidden | Player=%s | Distance=%.1f"), *Player->GetName(), FVector::Dist2D(GetPawn()->GetActorLocation(), Player->GetActorLocation()));
-		}
+    // Hearing: 소리를 들었지만 플레이어를 직접 보지는 못한 상태
+    if (bIsHearing)
+    {
+        if (!Stimulus.WasSuccessfullySensed())
+        {
+            return;
+        }
 
-		return;
-	}
+        const bool bIsCurrentTarget = BlackboardComponent->GetValueAsObject(TEXT("TargetActor")) == Player;
+        const bool bPlayerAlreadyVisible = bIsCurrentTarget && BlackboardComponent->GetValueAsBool(TEXT("CanSeeTarget"));
 
-	if (Stimulus.WasSuccessfullySensed())
-	{
-		BlackboardComponent->SetValueAsObject(TEXT("TargetActor"), Player);
-		BlackboardComponent->SetValueAsVector(TEXT("LastKnownLocation"), Player->GetActorLocation());
-		BlackboardComponent->SetValueAsBool(TEXT("CanSeeTarget"), true);
+        if (bPlayerAlreadyVisible)
+        {
+            return;
+        }
 
-		SetFocus(Player, EAIFocusPriority::Gameplay);
+        const FVector NoiseLocation = Stimulus.StimulusLocation;
 
-		UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Sight] Detected | Target=%s | Location=%s"), *Player->GetName(), *Player->GetActorLocation().ToString());
-	}
-	else
-	{
-		if (BlackboardComponent->GetValueAsObject(TEXT("TargetActor")) != Player)
-		{
-			return;
-		}
+        BlackboardComponent->SetValueAsObject(TEXT("TargetActor"), Player);
+        BlackboardComponent->SetValueAsVector(TEXT("LastKnownLocation"), NoiseLocation);
+        BlackboardComponent->SetValueAsBool(TEXT("CanSeeTarget"), false);
 
-		BlackboardComponent->SetValueAsBool(TEXT("CanSeeTarget"), false);
+        SetFocalPoint(NoiseLocation, EAIFocusPriority::Gameplay);
 
-		const FVector LastKnownLocation = BlackboardComponent->GetValueAsVector(TEXT("LastKnownLocation"));
-		SetFocalPoint(LastKnownLocation, EAIFocusPriority::Gameplay);
+        UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Hearing] Noise Detected | Target=%s | Location=%s | Tag=%s | Strength=%.2f"), *Player->GetName(), *NoiseLocation.ToString(), *Stimulus.Tag.ToString(), Stimulus.Strength);
 
-		UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Sight] LostSight | Target=%s | LastKnown=%s"), *Player->GetName(), *LastKnownLocation.ToString());
-	}
+        return;
+    }
+
+    // Sight: 기존 은신 감지 제한
+    UAbilitySystemComponent* PlayerASC = Player->GetAbilitySystemComponent();
+    const bool bPlayerHidden = PlayerASC && PlayerASC->HasMatchingGameplayTag(AssassinGameplayTags::State_Hidden);
+
+    if (bPlayerHidden && GetPawn() && FVector::Dist2D(GetPawn()->GetActorLocation(), Player->GetActorLocation()) > HiddenDetectionRadius)
+    {
+        if (BlackboardComponent->GetValueAsObject(TEXT("TargetActor")) == Player)
+        {
+            BlackboardComponent->SetValueAsBool(TEXT("CanSeeTarget"), false);
+
+            const FVector LastKnownLocation = BlackboardComponent->GetValueAsVector(TEXT("LastKnownLocation"));
+            SetFocalPoint(LastKnownLocation, EAIFocusPriority::Gameplay);
+
+            UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Stealth] Player Hidden | Player=%s | Distance=%.1f | LastKnown=%s"), *Player->GetName(), FVector::Dist2D(GetPawn()->GetActorLocation(), Player->GetActorLocation()), *LastKnownLocation.ToString());
+        }
+
+        return;
+    }
+
+    if (Stimulus.WasSuccessfullySensed())
+    {
+        BlackboardComponent->SetValueAsObject(TEXT("TargetActor"), Player);
+        BlackboardComponent->SetValueAsVector(TEXT("LastKnownLocation"), Player->GetActorLocation());
+        BlackboardComponent->SetValueAsBool(TEXT("CanSeeTarget"), true);
+
+        SetFocus(Player, EAIFocusPriority::Gameplay);
+
+        UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Sight] Detected | Target=%s | Location=%s"), *Player->GetName(), *Player->GetActorLocation().ToString());
+    }
+    else
+    {
+        if (BlackboardComponent->GetValueAsObject(TEXT("TargetActor")) != Player)
+        {
+            return;
+        }
+
+        BlackboardComponent->SetValueAsBool(TEXT("CanSeeTarget"), false);
+
+        const FVector LastKnownLocation = BlackboardComponent->GetValueAsVector(TEXT("LastKnownLocation"));
+        SetFocalPoint(LastKnownLocation, EAIFocusPriority::Gameplay);
+
+        UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Sight] LostSight | Target=%s | LastKnown=%s"), *Player->GetName(), *LastKnownLocation.ToString());
+    }
 }

@@ -43,6 +43,7 @@ EBTNodeResult::Type UAssassinClearTarget::ExecuteTask(UBehaviorTreeComponent& Ow
 	}
 
 	Blackboard->ClearValue(TargetActorKey.SelectedKeyName);
+	Blackboard->SetValueAsBool(TEXT("CanSeeTarget"), false);
 
 	UE_LOG(LogTemp, Display, TEXT("[EnemyAI][Search] Completed | ClearedTarget=%s"), *GetNameSafe(PreviousTarget));
 

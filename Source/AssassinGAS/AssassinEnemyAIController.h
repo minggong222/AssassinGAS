@@ -12,6 +12,7 @@
  */
 class UBehaviorTree;
 class UAISenseConfig_Sight;
+class UAISenseConfig_Hearing;
 class AAssassinGASCharacter;
 
 UCLASS()
@@ -30,6 +31,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
 	TObjectPtr<UAISenseConfig_Sight> SightConfig;
+
+	UPROPERTY(VisibleAnywhere, Category = "AI|Perception")
+	TObjectPtr<UAISenseConfig_Hearing> HearingConfig;
 
 	UPROPERTY(EditDefaultsOnly, Category = "AI")
 	TObjectPtr<UBehaviorTree> BehaviorTreeAsset;
